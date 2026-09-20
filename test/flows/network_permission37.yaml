@@ -1,0 +1,19 @@
+appId: dev.tvvnc.tv_vnc
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: unset
+- tapOn: "Find TVs"
+- assertVisible:
+    id: "com.android.permissioncontroller:id/permission_allow_button"
+- takeScreenshot: local-network-permission
+- tapOn:
+    id: "com.android.permissioncontroller:id/permission_deny_button"
+- assertNotVisible: "No TVs found. Check that your phone and TV are on the same network."
+- takeScreenshot: local-network-denied
+- tapOn: "Find TVs"
+- tapOn:
+    id: "com.android.permissioncontroller:id/permission_allow_button"
+- takeScreenshot: local-network-allowed
+- assertVisible: "Your TVs"

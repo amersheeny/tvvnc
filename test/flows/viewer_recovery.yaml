@@ -1,0 +1,8 @@
+appId: dev.tvvnc.tv_vnc
+---
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Remote.*"
+- extendedWaitUntil:
+    notVisible: "Live TV screen"
+    timeout: 15000
+- takeScreenshot: viewer-disconnected

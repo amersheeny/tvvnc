@@ -1,0 +1,13 @@
+appId: dev.tvvnc.tv_vnc
+---
+- extendedWaitUntil:
+    visible: "Live TV screen"
+    timeout: 45000
+- tapOn: "Right"
+- tapOn: "Save screenshot"
+- assertVisible: "Screenshot saved on this phone."
+- takeScreenshot: viewer-4k
+- tapOn: "Full screen"
+- tapOn: "Actual size"
+- takeScreenshot: viewer-4k-actual-size
+- back

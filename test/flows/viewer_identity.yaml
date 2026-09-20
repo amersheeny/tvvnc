@@ -1,0 +1,13 @@
+appId: dev.tvvnc.tv_vnc
+---
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Remote.*"
+- extendedWaitUntil:
+    visible: "Live TV screen"
+    timeout: 30000
+- tapOn: "Full screen"
+- assertVisible: "Protocol test"
+- tapOn: "Actual size"
+- assertVisible: "Protocol test"
+- takeScreenshot: fullscreen-identity
+- back

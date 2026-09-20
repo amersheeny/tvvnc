@@ -1,0 +1,43 @@
+appId: dev.tvvnc.tv_vnc
+---
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)All buttons.*"
+- takeScreenshot: all-buttons
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Inputs.*"
+- assertVisible: "No input list is available yet. Connect or refresh to check."
+- takeScreenshot: inputs-unavailable
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Apps.*"
+- assertVisible: "No app list is available yet. Connect or refresh to check."
+- takeScreenshot: apps-unavailable
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Shortcuts.*"
+- takeScreenshot: shortcuts-empty
+- tapOn: "Add shortcut"
+- takeScreenshot: shortcut-editor
+- back
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Settings.*"
+- takeScreenshot: settings-light
+- tapOn: "Customize remote"
+- takeScreenshot: customize
+- back
+- scrollUntilVisible:
+    element:
+      text: "Dark"
+    direction: DOWN
+- tapOn: "Dark"
+- takeScreenshot: settings-dark
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Remote.*"
+- takeScreenshot: remote-dark
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Touchpad.*"
+- takeScreenshot: touchpad-dark
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Keyboard.*"
+- tapOn: "Private text"
+- inputText: "privacy fixture"
+- takeScreenshot: private-keyboard-dark
+- hideKeyboard

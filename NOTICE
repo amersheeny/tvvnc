@@ -1,11 +1,10 @@
-TV VNC — GPL-3.0-or-later
+TV Console — GPL-3.0-or-later
 
 The app links LibVNCClient from LibVNCServer (GPL-2.0-or-later), pinned by
 the native/libvncserver Git submodule. Its copyright and license notices remain
 in that dependency's COPYING and AUTHORS files.
 The maintained fork marks its 2026-09-21 socket-read and monotonic timeout
 modifications in source and TVCONSOLE_CHANGES.md; it is not unmodified upstream.
-That historical filename retains the project's earlier name for traceability.
 
 JPEG decoding uses libjpeg-turbo, pinned by native/libjpeg-turbo. Its component
 licenses and attribution are in that dependency's LICENSE.md.

@@ -1,0 +1,20 @@
+appId: dev.tvvnc.tv_vnc
+---
+- launchApp
+- tapOn: "(?s)Protocol test.*10.0.2.2.*"
+- extendedWaitUntil:
+    visible: "Live TV screen"
+    timeout: 30000
+- tapOn: "Keyboard"
+- inputText: "ordinary draft "
+- tapOn: "Private text"
+- inputText: "secretprobe"
+- assertNotVisible: "secretprobe"
+- takeScreenshot: private-ime
+- hideKeyboard
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Remote.*"
+- tapOn: "Keyboard"
+- assertVisible: "Type or paste text"
+- takeScreenshot: private-cleared
+- hideKeyboard

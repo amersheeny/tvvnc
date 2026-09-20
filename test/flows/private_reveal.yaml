@@ -1,0 +1,25 @@
+appId: dev.tvvnc.tv_vnc
+---
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Keyboard.*"
+- tapOn: "Clear"
+- tapOn: "Type or paste text"
+- inputText: "protected fixture"
+- tapOn: "Private text"
+- assertNotVisible: "protected fixture"
+- tapOn: "Private text"
+- assertVisible: "protected fixture"
+- takeScreenshot: revealed-sensitive-ime
+- hideKeyboard
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Remote.*"
+- tapOn: "Keyboard"
+- assertVisible: "Type or paste text"
+- assertNotVisible: "protected fixture"
+- tapOn: "Private text"
+- inputText: "another fixture"
+- tapOn: "Private text"
+- tapOn: "Clear"
+- inputText: "ordinary again"
+- takeScreenshot: ordinary-ime-restored
+- hideKeyboard

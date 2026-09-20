@@ -1,0 +1,13 @@
+appId: dev.tvvnc.tv_vnc
+---
+- assertVisible: "(?s).*Deletion 2.*Protocol test.*"
+- takeScreenshot: numbered-undo-large
+- tapOn: "Dismiss"
+- assertVisible: "(?s).*Deletion 3.*Protocol test.*"
+- takeScreenshot: next-numbered-undo-large
+- tapOn: "Undo"
+- assertVisible: "(?s)Queue item.*"
+- tapOn: "(?s)Queue item.*"
+- assertVisible: "(?s).*Wait for the TV to be ready.*"
+- takeScreenshot: restored-second-sequence
+- back
