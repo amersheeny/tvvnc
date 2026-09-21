@@ -187,6 +187,8 @@ class TvController(private val context: Context, private val textures: TextureRe
             }.awaitAll()
         }
         val snapshot = session.snapshot()
+        val nativeState = session.remote.state.value
+        val remoteObservations = session.diagnostics.snapshot()
         // Deliberate allowlist: never serialize profiles, commands, editor text,
         // cookies, certificates, keys, credentials or captured pixels.
         return JSONObject().put("format", 1).put("time", System.currentTimeMillis())
@@ -197,7 +199,10 @@ class TvController(private val context: Context, private val textures: TextureRe
             .put("rfbProtocol", snapshot.screen.protocolVersion).put("rfbSecurityType", snapshot.screen.securityType)
             .put("rfbDesktopName", snapshot.screen.desktopName).put("rfbExtendedClipboard", snapshot.screen.extendedClipboard)
             .put("networkPermission", permissions.networkAllowed()).put("ports", JSONArray(probes))
-            .put("remoteEvents", JSONArray(synchronized(session.remoteEvents) { session.remoteEvents.toList() }))
+            .put("remoteEvents", JSONArray(remoteObservations.first))
+            .put("remoteEventsSeenThisSession", JSONArray(remoteObservations.second))
+            .put("remoteEditor", JSONObject().put("present", nativeState.editor != null)
+                .put("hasText", nativeState.editor?.text?.isNotEmpty() == true))
             .put("lastNavigation", session.lastNavigation?.let { (code, outcome) ->
                 JSONObject().put("androidCode", code).put("transport", outcome.transport)
                     .put("delivery", outcome.delivery.name).put("error", outcome.errorCode)
@@ -248,13 +253,7 @@ class TvController(private val context: Context, private val textures: TextureRe
         private val snapshotSequence = AtomicLong()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         val identity = KeystoreIdentity(context, profile.id)
-        val remoteEvents = ArrayDeque<String>()
-        private val diagnostics = io.github.ddagunts.screencast.androidtv.logging.DiagnosticSink { event ->
-            synchronized(remoteEvents) {
-                if (remoteEvents.size >= 16) remoteEvents.removeFirst()
-                remoteEvents.addLast(event.name)
-            }
-        }
+        val diagnostics = RemoteDiagnosticHistory()
         val remote = NativeRemoteSession(identity, diagnostics)
         val sony = SonyTransport(profile.host, psk = { store.secrets.get("${profile.id}:sony") },
             cookie = { store.secrets.get("${profile.id}:sonyCookie") })

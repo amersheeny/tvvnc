@@ -43,8 +43,11 @@ class KeyboardPageState extends State<KeyboardPage>
   bool sensitiveDraft = false;
   bool get sensitive => private || sensitiveDraft;
   bool sending = false;
+  bool pendingSync = false;
   TvTarget? origin;
   DraftContext? draftContext;
+  DraftContext? composeDraftContext;
+  TextSelection lastSelection = const TextSelection.collapsed(offset: -1);
   bool composing = false;
   bool changingBuffer = false;
   int modeEpoch = 0;
@@ -60,7 +63,9 @@ class KeyboardPageState extends State<KeyboardPage>
     widget.model.addListener(changed);
     origin = widget.model.target;
     draftContext = widget.model.draftContext;
-    text.value = widget.model.draft(draftContext);
+    composeDraftContext = widget.model.composeContextFor(draftContext);
+    text.value = widget.model.draft(composeDraftContext);
+    lastSelection = text.selection;
     text.addListener(compositionChanged);
     lastEditorRevision = widget.model.state?.editor?.revision;
     final editor = widget.model.state?.editor;
@@ -79,6 +84,8 @@ class KeyboardPageState extends State<KeyboardPage>
     invalidateMode();
     origin = widget.model.target;
     draftContext = widget.model.draftContext;
+    widget.model.keepComposeContext(draftContext, composeDraftContext);
+    pendingSync = false;
     revision = editor.revision;
     lastEditorRevision = editor.revision;
     live = true;
@@ -98,6 +105,17 @@ class KeyboardPageState extends State<KeyboardPage>
 
   void compositionChanged() {
     bufferRevision++;
+    final previousSelection = lastSelection;
+    lastSelection = text.selection;
+    // Flutter normalizes an invalid selection when focus first arrives. A
+    // later valid selection change comes from editing, not initial focus.
+    if (!changingBuffer &&
+        previousSelection.isValid &&
+        text.selection.isValid &&
+        previousSelection != text.selection) {
+      entryUntouched = false;
+      if (live) editedLive = true;
+    }
     final next = !text.value.composing.isCollapsed;
     final committed = composing && !next;
     composing = next;
@@ -128,13 +146,17 @@ class KeyboardPageState extends State<KeyboardPage>
 
   void keepCompose() {
     if (!sensitive && !live && !pausedEdit) {
-      widget.model.rememberDraft(draftContext, text.value);
+      widget.model.rememberDraft(composeDraftContext, text.value);
+      widget.model.keepComposeContext(draftContext, composeDraftContext);
     }
   }
 
   void restoreCompose() {
+    pendingSync = false;
     replaceBuffer(
-      sensitive ? TextEditingValue.empty : widget.model.draft(draftContext),
+      sensitive
+          ? TextEditingValue.empty
+          : widget.model.draft(composeDraftContext),
     );
   }
 
@@ -153,6 +175,8 @@ class KeyboardPageState extends State<KeyboardPage>
     final sameTarget =
         next?.deviceId == origin?.deviceId &&
         next?.sessionId == origin?.sessionId;
+    final initialTargetAppeared =
+        origin == null && next != null && draftContext?.$1 == next.deviceId;
     if (sameTarget &&
         pausedEdit &&
         followEditor &&
@@ -163,18 +187,27 @@ class KeyboardPageState extends State<KeyboardPage>
       setState(() {});
       return;
     }
-    if (sameTarget &&
+    if ((sameTarget || initialTargetAppeared) &&
         oldEditorRevision == null &&
         editor != null &&
         !live &&
         !pausedEdit &&
-        !sensitive) {
-      if (followEditor && entryUntouched && text.text.isEmpty && !composing) {
+        (!sensitive || initialTargetAppeared)) {
+      if (followEditor && entryUntouched && !sensitive && !composing) {
         bindEditor(editor);
-        setState(() {});
       } else {
+        origin = next;
         draftContext = widget.model.draftContext;
+        widget.model.keepComposeContext(draftContext, composeDraftContext);
       }
+      setState(() {});
+      return;
+    }
+    if (initialTargetAppeared && !live && !pausedEdit) {
+      origin = next;
+      draftContext = widget.model.draftContext;
+      widget.model.keepComposeContext(draftContext, composeDraftContext);
+      setState(() {});
       return;
     }
     if (contextChanged ||
@@ -200,6 +233,7 @@ class KeyboardPageState extends State<KeyboardPage>
       } else {
         if (sensitive) replaceBuffer(TextEditingValue.empty);
         draftContext = widget.model.draftContext;
+        composeDraftContext = widget.model.composeContextFor(draftContext);
         restoreCompose();
       }
       draftContext = widget.model.draftContext;
@@ -289,6 +323,7 @@ class KeyboardPageState extends State<KeyboardPage>
   }
 
   Future<bool> sendValue({bool replace = false}) async {
+    entryUntouched = false;
     final captured = origin;
     if (captured == null || pausedEdit) return false;
     final epoch = modeEpoch;
@@ -318,6 +353,14 @@ class KeyboardPageState extends State<KeyboardPage>
       setState(() {
         activeSend = null;
         sending = false;
+        if (result?.errorCode == 'ime_sync_pending' &&
+            result?.delivery == Delivery.notSent) {
+          pendingSync = true;
+          debounce?.cancel();
+        } else if (result?.delivery == Delivery.sent ||
+            result?.delivery == Delivery.confirmed) {
+          pendingSync = false;
+        }
         if (replace &&
             (result?.delivery == Delivery.sent ||
                 result?.delivery == Delivery.confirmed)) {
@@ -342,7 +385,9 @@ class KeyboardPageState extends State<KeyboardPage>
       }
       if (replace &&
           result?.delivery != Delivery.sent &&
-          result?.delivery != Delivery.confirmed) {
+          result?.delivery != Delivery.confirmed &&
+          !(result?.delivery == Delivery.notSent &&
+              result?.errorCode == 'ime_sync_pending')) {
         setState(() {
           invalidateMode();
           live = false;
@@ -496,6 +541,7 @@ class KeyboardPageState extends State<KeyboardPage>
     keepCompose();
     if (!repeat) debounce?.cancel();
     if (live &&
+        !pendingSync &&
         !finishing &&
         text.value.composing.isCollapsed &&
         (!repeat || debounce?.isActive != true)) {
@@ -596,7 +642,7 @@ class KeyboardPageState extends State<KeyboardPage>
                           invalidateMode();
                           if (value) {
                             sensitiveDraft = true;
-                            widget.model.clearDraft(draftContext);
+                            widget.model.clearDraft(composeDraftContext);
                           }
                           setState(() {
                             private = value;
@@ -617,7 +663,10 @@ class KeyboardPageState extends State<KeyboardPage>
                     key: ValueKey((private, sensitive, live || pausedEdit)),
                     controller: text,
                     focusNode: configuredInputFocus(),
-                    onTap: () => keyboardDismissed = false,
+                    onTap: () {
+                      keyboardDismissed = false;
+                      entryUntouched = false;
+                    },
                     readOnly: finishing,
                     obscureText: private,
                     enableSuggestions: !sensitive && !live && !pausedEdit,
@@ -635,6 +684,16 @@ class KeyboardPageState extends State<KeyboardPage>
                     onChanged: (_) => schedule(),
                   ),
                   if (pausedEdit) Text(t('pausedEditingBody')),
+                  if (pendingSync && !pausedEdit)
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        t('imeSyncPending'),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -643,6 +702,7 @@ class KeyboardPageState extends State<KeyboardPage>
                         onPressed: finishing
                             ? null
                             : () async {
+                                entryUntouched = false;
                                 final contextAtPaste = draftContext;
                                 final targetAtPaste = origin;
                                 final modeAtPaste = modeEpoch;
@@ -700,7 +760,7 @@ class KeyboardPageState extends State<KeyboardPage>
                 t(live || pausedEdit ? 'editingKeys' : 'tvEditingKeys'),
               ),
             ),
-            if (!pausedEdit)
+            if (!pausedEdit && (!live || !pendingSync))
               Text(t(live ? 'liveEditingBody' : 'tvEditingBody')),
             const SizedBox(height: 8),
             Wrap(

@@ -8,8 +8,15 @@ Preview resizing follows keyboard implementation and validation.
 
 - A present native editor, including an empty one, opens in Live edit. Prefill
   copies text and clamped UTF-16 selection without sending a command.
-- Compose has a separate ordinary draft. A late editor may take over only an
-  untouched, empty entry, never a saved draft, explicit mode choice, or typing.
+- Compose has a separate ordinary draft. A late editor may take over an
+  untouched entry, including a briefly displayed saved draft. Its original
+  cache key is retained across page recreation; Compose returns to that draft
+  without overwriting another application's saved draft. A field tap, later
+  caret movement, typing, Paste/Send beginning, private mode or explicit mode
+  choice disarms automatic adoption. Prefill itself sends nothing.
+- A first session snapshot may arrive after Keyboard opens, with or without
+  the editor. Discovery of that first target must not erase phone typing.
+  Genuine target/session changes retain the existing privacy/context rules.
 - Clean Live follows field/counter refreshes. A dirty or composing old field
   pauses and retains its text on this page without caching or replaying it.
 - **Selecting Live edit while paused replaces the retained text with TV text.**
@@ -18,6 +25,13 @@ Preview resizing follows keyboard implementation and validation.
 - Imported Live/paused buffers never enter saved drafts or IME learning. Private
   masking and clearing survive context changes, backgrounding, and disposal.
 - Older same-revision echoes cannot replace local edits or move the phone caret.
+- A matching native counter update retains an already received field snapshot.
+  Known counters for a different field cannot be used to send the current edit.
+  That refusal retains the local buffer and shows an accessible persistent
+  notice; automatic typing dispatch stops until a deliberate Send/exit attempt.
+  No timer, snapshot or reconnect replays the buffer. The initial zero-counter
+  behavior remains until the server supplies counters. Actual Sony counter
+  timing remains unverified without the paired phone connected.
 
 ## Focus and navigation
 

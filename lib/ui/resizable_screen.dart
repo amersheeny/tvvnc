@@ -256,11 +256,12 @@ class _ResizableScreenState extends State<ResizableScreen>
                               });
                             },
                             onCanceled: () {
-                              if (mounted)
+                              if (mounted) {
                                 setState(() {
                                   menuOpen = false;
                                   menuHeight = null;
                                 });
+                              }
                             },
                             onSelected: (button) {
                               setState(() {

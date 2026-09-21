@@ -31,6 +31,9 @@ class TvModel extends ChangeNotifier implements TvFlutterApi {
   String? iconError;
   final _icons = <String, Future<Uint8List?>>{};
   final _drafts = <DraftContext, TextEditingValue>{};
+  // A native editor can become known after Compose loaded. Keep the source key
+  // across page recreation without moving or duplicating anyone's draft text.
+  final _composeContexts = <DraftContext, DraftContext>{};
   int _deletionSequence = 0;
   int nextShortcutDeletion() => ++_deletionSequence;
   Future<void> _profileWrites = Future.value();
@@ -47,16 +50,32 @@ class TvModel extends ChangeNotifier implements TvFlutterApi {
       : (selected!.id, state?.editor?.application ?? state?.currentApp);
   TextEditingValue draft(DraftContext? context) =>
       _drafts[context] ?? TextEditingValue.empty;
+  DraftContext? composeContextFor(DraftContext? context) =>
+      _composeContexts[context] ?? context;
+  void keepComposeContext(DraftContext? context, DraftContext? source) {
+    if (context != null &&
+        source != null &&
+        context.$1 == source.$1 &&
+        context != source &&
+        _drafts.containsKey(source)) {
+      _composeContexts[context] = source;
+    }
+  }
+
   void rememberDraft(DraftContext? context, TextEditingValue value) {
     if (context == null) return;
     if (value.text.isEmpty) {
-      _drafts.remove(context);
+      clearDraft(context);
     } else {
       _drafts[context] = value.copyWith(composing: TextRange.empty);
     }
   }
 
-  void clearDraft(DraftContext? context) => _drafts.remove(context);
+  void clearDraft(DraftContext? context) {
+    _drafts.remove(context);
+    _composeContexts.removeWhere((_, source) => source == context);
+  }
+
   Future<Uint8List?> icon(TvApplication app) {
     final captured = target;
     if (captured == null) return Future.value(null);
@@ -174,6 +193,7 @@ class TvModel extends ChangeNotifier implements TvFlutterApi {
       // Let editor listeners leave their old context before clearing its cache.
       notifyListeners();
       _drafts.removeWhere((key, _) => key.$1 == profile.id);
+      _composeContexts.removeWhere((key, _) => key.$1 == profile.id);
       await reload();
     });
   }
@@ -240,8 +260,12 @@ class TvModel extends ChangeNotifier implements TvFlutterApi {
           result.delivery == Delivery.sent) {
         report('textUnconfirmed');
       }
-      if (result.delivery == Delivery.notSent ||
-          result.delivery == Delivery.rejected) {
+      // Keyboard owns a persistent, accessible indication for this text-only
+      // refusal. A snackbar on every attempt would duplicate that state.
+      if ((result.delivery == Delivery.notSent ||
+              result.delivery == Delivery.rejected) &&
+          !(kind == CommandKind.text &&
+              result.errorCode == 'ime_sync_pending')) {
         report(codeKey(result.errorCode));
       }
       if (kind == CommandKind.app && result.delivery == Delivery.sent) {
@@ -317,6 +341,7 @@ class TvModel extends ChangeNotifier implements TvFlutterApi {
   void dispose() {
     TvFlutterApi.setUp(null);
     _drafts.clear();
+    _composeContexts.clear();
     screen.dispose();
     remoteScreenHeight.dispose();
     keyboardScreenHeight.dispose();
@@ -326,6 +351,7 @@ class TvModel extends ChangeNotifier implements TvFlutterApi {
   static String errorKey(Object error) =>
       codeKey(error is PlatformException ? error.message : null);
   static String codeKey(String? code) => switch (code) {
+    'ime_sync_pending' => 'notSent',
     'network_permission' => 'permissionBody',
     'authentication_required' => 'authFailed',
     'pairing_required' => 'pairingRequired',

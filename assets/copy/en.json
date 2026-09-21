@@ -112,6 +112,7 @@
   "clear": "Clear",
   "editorChanged": "The TV text field changed. Switch to Live edit again to continue.",
   "noEditor": "Select a text field on the TV first.",
+  "imeSyncPending": "Your text is not going to the TV. Select Send to try again.",
   "textUnconfirmed": "Text was sent, but the TV did not confirm it. Check the TV before sending again.",
   "search": "Search",
   "favorites": "Favorites",
