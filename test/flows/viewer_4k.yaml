@@ -1,4 +1,4 @@
-appId: dev.tvvnc.tv_vnc
+appId: com.asheeny.tvvnc
 ---
 - extendedWaitUntil:
     visible: "Live TV screen"

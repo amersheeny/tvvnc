@@ -29,12 +29,15 @@ class Console extends StatefulWidget {
 
 class _ConsoleState extends State<Console> with WidgetsBindingObserver {
   String page = 'devices';
+  final pageHistory = <LocalHistoryEntry>[];
+  String? selectedId;
   int seenMessage = 0;
   bool showingPair = false;
   BuildContext? pairingContext;
   @override
   void initState() {
     super.initState();
+    selectedId = widget.model.selected?.id;
     widget.model.addListener(changed);
     WidgetsBinding.instance.addObserver(this);
   }
@@ -43,6 +46,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
   void dispose() {
     widget.model.removeListener(changed);
     WidgetsBinding.instance.removeObserver(this);
+    clearPageHistory();
     super.dispose();
   }
 
@@ -55,6 +59,10 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
   }
 
   void changed() {
+    if (selectedId != widget.model.selected?.id) {
+      selectedId = widget.model.selected?.id;
+      clearPageHistory();
+    }
     final dialog = pairingContext;
     if (dialog != null && widget.model.state?.pairingState != 'waiting') {
       pairingContext = null;
@@ -157,14 +165,48 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
     showingPair = false;
   }
 
+  void clearPageHistory() {
+    final entries = pageHistory.toList();
+    // Untrack first: removing entries calls onRemove synchronously. A reset
+    // must not restore pages from an old TV or rebuild during disposal.
+    pageHistory.clear();
+    page = 'devices';
+    for (final entry in entries.reversed) {
+      entry.remove();
+    }
+  }
+
   void navigate(String next) {
+    final current = widget.model.selected == null ? 'devices' : page;
+    if (next == current ||
+        (widget.model.selected == null && next != 'devices')) {
+      return;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
+    if (next == 'devices') {
+      setState(clearPageHistory);
+      return;
+    }
+    late final LocalHistoryEntry entry;
+    entry = LocalHistoryEntry(
+      impliesAppBarDismissal: false,
+      onRemove: () {
+        if (!pageHistory.remove(entry) || !mounted) return;
+        FocusManager.instance.primaryFocus?.unfocus();
+        setState(() => page = current);
+      },
+    );
+    pageHistory.add(entry);
+    ModalRoute.of(context)!.addLocalHistoryEntry(entry);
     setState(() => page = next);
   }
 
   void select(TvProfile profile) {
-    navigate('remote');
+    clearPageHistory();
+    // connect publishes its selected TV synchronously. Let changed() reset
+    // that identity before adding history, without awaiting network or consent.
     unawaited(widget.model.connect(profile));
+    navigate('remote');
   }
 
   @override

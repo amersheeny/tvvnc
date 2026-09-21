@@ -1,4 +1,4 @@
-appId: dev.tvvnc.tv_vnc
+appId: com.asheeny.tvvnc
 ---
 - tapOn: "Open navigation menu"
 - tapOn: "(?s)All buttons.*"

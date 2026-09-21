@@ -1,4 +1,4 @@
-appId: dev.tvvnc.tv_vnc
+appId: com.asheeny.tvvnc
 ---
 - launchApp
 - tapOn: "(?s)Protocol test.*10.0.2.2.*"

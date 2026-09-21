@@ -1,4 +1,4 @@
-appId: dev.tvvnc.tv_vnc
+appId: com.asheeny.tvvnc
 ---
 - tapOn: "Clear"
 - tapOn: "Type or paste text"

@@ -1,4 +1,4 @@
-# TV Console
+# TV VNC
 
 A local-network Android TV remote console. Flutter supplies the interface;
 Android TV Remote v2 and vendor APIs supply native controls; RFB supplies the
@@ -10,6 +10,11 @@ apps are discovered or configured per device, never compiled into the app.
 
 No analytics, advertising, relay or cloud telemetry. Secrets remain in Android
 Keystore-backed storage and are excluded from diagnostic exports.
+
+Android application ID: `com.asheeny.tvvnc`. This is a separate installation
+from the early `dev.tvvnc.tv_vnc` test app; Android does not transfer that app's
+saved TVs or Keystore credentials automatically. Keep the old installation
+until setup of the new one is complete.
 
 ## Implementation status
 

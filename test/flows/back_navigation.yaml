@@ -1,0 +1,68 @@
+appId: com.asheeny.tvvnc
+---
+- stopApp
+- launchApp
+- tapOn: "${TV_PATTERN}"
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Keyboard.*"
+- assertVisible: "Compose"
+- tapOn: "Type or paste text"
+- inputText: "navigation fixture"
+- assertVisible: "Compose"
+- assertVisible: "navigation fixture"
+- takeScreenshot: keyboard-before-page-back
+- back
+- assertVisible: "Direct touch"
+- takeScreenshot: returned-to-remote
+- back
+- assertVisible: "Your TVs"
+- takeScreenshot: returned-to-devices
+- tapOn: "${TV_PATTERN}"
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Keyboard.*"
+- tapOn: "Private text"
+- tapOn: "Type or paste text"
+- inputText: "private navigation fixture"
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Apps.*"
+- back
+- assertVisible: "Compose"
+- assertVisible: "Type or paste text"
+- assertNotVisible: "private navigation fixture"
+- takeScreenshot: private-draft-not-restored
+- tapOn: "Open navigation menu"
+- back
+- assertVisible: "Compose"
+- takeScreenshot: drawer-dismissed-on-keyboard
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Settings.*"
+- tapOn: "Customize remote"
+- back
+- assertVisible: "Customize remote"
+- takeScreenshot: customize-returned-to-settings
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Shortcuts.*"
+- tapOn: "Add shortcut"
+- back
+- assertVisible: "Add shortcut"
+- back
+- assertVisible: "Customize remote"
+- back
+- assertVisible: "Compose"
+- back
+- assertVisible: "Direct touch"
+- tapOn: "Full screen"
+- back
+- assertVisible: "Direct touch"
+- takeScreenshot: fullscreen-returned-to-remote
+- back
+- assertVisible: "Your TVs"
+- tapOn: "Enter address"
+- back
+- assertVisible: "Your TVs"
+- takeScreenshot: dialog-dismissed-at-root
+- back
+- assertNotVisible: "Your TVs"
+- takeScreenshot: root-returns-to-android
+- launchApp
+- assertVisible: "Your TVs"

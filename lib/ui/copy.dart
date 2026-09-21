@@ -7,7 +7,7 @@ abstract final class Copy {
         (match) => arguments[match[1]] ?? match[0]!,
       );
   static const Map<String, String> values = {
-    "appTitle": "TV Console",
+    "appTitle": "TV VNC",
     "devices": "Your TVs",
     "addTv": "Add TV",
     "discover": "Find TVs",

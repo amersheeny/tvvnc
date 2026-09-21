@@ -1,4 +1,4 @@
-appId: dev.tvvnc.tv_vnc
+appId: com.asheeny.tvvnc
 ---
 - assertVisible: "(?s).*Deletion 2.*Protocol test.*"
 - takeScreenshot: numbered-undo-large

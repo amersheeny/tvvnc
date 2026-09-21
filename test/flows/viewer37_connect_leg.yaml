@@ -1,4 +1,4 @@
-appId: dev.tvvnc.tv_vnc
+appId: com.asheeny.tvvnc
 ---
 - tapOn:
     id: "com.android.permissioncontroller:id/permission_allow_button"
