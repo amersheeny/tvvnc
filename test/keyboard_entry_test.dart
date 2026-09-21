@@ -8,6 +8,36 @@ import 'package:tv_vnc/ui/keyboard_page.dart';
 import 'widget_safety_test.dart' show RecordingApi, model, snapshot;
 
 void main() {
+  testWidgets(
+    'holding Backspace after clearing the field sends no duplicate replacements',
+    (tester) async {
+      final api = RecordingApi();
+      final m = model(api);
+      m.state!.editor!
+        ..text = 'abc'
+        ..start = 3
+        ..end = 3;
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: KeyboardPage(m))),
+      );
+      await tester.pumpAndSettle();
+      final button = find.byTooltip('Backspace');
+      await tester.ensureVisible(button);
+      final hold = await tester.startGesture(tester.getCenter(button));
+      await tester.pump(const Duration(milliseconds: 1100));
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        isEmpty,
+      );
+      final count = api.commands.length;
+      expect(count, greaterThan(0));
+      await tester.pump(const Duration(seconds: 1));
+      expect(api.commands.length, count);
+      await hold.up();
+      await tester.pumpWidget(const SizedBox());
+      m.dispose();
+    },
+  );
   testWidgets('TV snapshots do not reopen a deliberately dismissed phone IME', (
     tester,
   ) async {

@@ -243,6 +243,11 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final m = widget.model;
     final current = m.selected == null ? 'devices' : page;
+    final window = MediaQuery.sizeOf(context);
+    final compactKeyboard =
+        current == 'keyboard' &&
+        window.width > window.height &&
+        MediaQuery.viewInsetsOf(context).bottom > 0;
     final entries = [
       ('devices', Icons.tv),
       ('remote', Icons.settings_remote_outlined),
@@ -290,6 +295,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
         key: scaffoldKey,
         onDrawerChanged: (value) => setState(() => drawerOpen = value),
         appBar: AppBar(
+          toolbarHeight: compactKeyboard ? 48 : null,
           title: Text(current == 'devices' ? t('appTitle') : m.selected!.name),
           actions: current == 'devices'
               ? null
@@ -356,7 +362,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
             children: [
               if (current != 'devices' && m.networkPermissionDenied)
                 NetworkPermissionPanel(m),
-              if (current != 'devices')
+              if (current != 'devices' && !compactKeyboard)
                 Material(
                   color: Theme.of(context).colorScheme.surfaceContainer,
                   child: InkWell(

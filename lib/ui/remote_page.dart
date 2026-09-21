@@ -1,11 +1,12 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../bridge/tv_api.g.dart';
 import '../model/tv_model.dart';
-import 'viewer.dart';
+import 'resizable_screen.dart';
 import 'widgets.dart';
 
 const defaultLayout = [
@@ -114,6 +115,7 @@ class RemotePage extends StatefulWidget {
 }
 
 class _RemotePageState extends State<RemotePage> {
+  final screenKey = GlobalKey();
   late String mode = widget.initialMode;
   Availability powerState(String id) =>
       widget.model.state?.capabilities
@@ -143,8 +145,9 @@ class _RemotePageState extends State<RemotePage> {
         ? m.selected!.layout
         : defaultLayout;
     final standardLayout = layout.join('|') == defaultLayout.join('|');
-    final preview = ScreenViewer(model: m, direct: mode == 'directTouch');
-    final remote = ListView(
+    Widget remoteControlsList({bool shrink = false}) => ListView(
+      shrinkWrap: shrink,
+      physics: shrink ? const NeverScrollableScrollPhysics() : null,
       padding: const EdgeInsets.all(16),
       children: [
         if (m.state?.transports.any(
@@ -406,22 +409,42 @@ class _RemotePageState extends State<RemotePage> {
       valueListenable: m.screen,
       builder: (context, frame, _) => LayoutBuilder(
         builder: (context, box) {
-          if (box.maxWidth > 760 && frame.hidden != true) {
+          final wide =
+              box.maxWidth > 760 && box.maxHeight >= 48 && frame.hidden != true;
+          final short = !wide && box.maxHeight < 192;
+          final remote = remoteControlsList(shrink: short);
+          final preview = ResizableScreen(
+            key: screenKey,
+            model: m,
+            direct: mode == 'directTouch',
+            height: m.remoteScreenHeight,
+            availableHeight: box.maxHeight,
+            defaultViewerHeight: wide
+                ? box.maxHeight - 48
+                : (box.maxHeight * 0.3).clamp(150, 270),
+            maximumHeight: wide
+                ? box.maxHeight
+                : math.max(box.maxHeight * .35, box.maxHeight - 192),
+          );
+          if (wide) {
             return Row(
               children: [
-                Expanded(flex: 3, child: preview),
+                Expanded(
+                  flex: 3,
+                  child: Align(alignment: Alignment.topCenter, child: preview),
+                ),
                 Expanded(flex: 2, child: remote),
               ],
             );
           }
+          if (short) {
+            return SingleChildScrollView(
+              child: Column(children: [preview, remote]),
+            );
+          }
           return Column(
             children: [
-              SizedBox(
-                height: frame.hidden == true
-                    ? 48
-                    : (box.maxHeight * 0.3).clamp(150, 270),
-                child: preview,
-              ),
+              preview,
               Expanded(child: remote),
             ],
           );

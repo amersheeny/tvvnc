@@ -18,6 +18,8 @@ class TvModel extends ChangeNotifier implements TvFlutterApi {
   TvModel({TvHostApi? api}) : api = api ?? TvHostApi();
   final TvHostApi api;
   final screen = ValueNotifier<ScreenInfo>(ScreenInfo());
+  final remoteScreenHeight = ValueNotifier<double?>(null);
+  final keyboardScreenHeight = ValueNotifier<double?>(null);
   List<TvProfile> profiles = [];
   TvProfile? selected;
   SessionSnapshot? state;
@@ -316,6 +318,8 @@ class TvModel extends ChangeNotifier implements TvFlutterApi {
     TvFlutterApi.setUp(null);
     _drafts.clear();
     screen.dispose();
+    remoteScreenHeight.dispose();
+    keyboardScreenHeight.dispose();
     super.dispose();
   }
 

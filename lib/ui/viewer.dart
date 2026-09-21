@@ -28,21 +28,27 @@ class ScreenViewer extends StatefulWidget {
     required this.model,
     this.direct = false,
     this.fullscreen = false,
+    this.showToolbar = true,
   });
   final TvModel model;
   final bool direct;
   final bool fullscreen;
+  final bool showToolbar;
   @override
-  State<ScreenViewer> createState() => _ScreenViewerState();
+  State<ScreenViewer> createState() => ScreenViewerState();
 }
 
-class _ScreenViewerState extends State<ScreenViewer> {
+class ScreenViewerState extends State<ScreenViewer> {
   final transform = TransformationController();
   final pointers = <int>{};
   Size viewport = Size.zero;
   int generation = -1;
   Size frameSize = Size.zero;
   double fitScale = 1;
+  bool fitMode = true;
+  bool settingTransform = false;
+  Size transformViewport = Size.zero;
+  int geometryEpoch = 0;
   Offset? lastPoint;
   int? remotePointer;
   int? remoteGeneration;
@@ -60,6 +66,10 @@ class _ScreenViewerState extends State<ScreenViewer> {
   }
 
   void detailChanged() {
+    if (!settingTransform) {
+      fitMode = false;
+      transformViewport = viewport;
+    }
     final next = transform.value.getMaxScaleOnAxis() > fitScale * 1.05;
     if (next == detailed) return;
     detailed = next;
@@ -89,9 +99,18 @@ class _ScreenViewerState extends State<ScreenViewer> {
     candidate = null;
   }
 
+  /// Cancel direct touch even at a size bound, where no viewport change follows.
+  void cancelPointerInput() {
+    release();
+    pointers.clear();
+    multiTouch = false;
+  }
+
   void fit({bool actual = false}) {
     release();
     if (frameSize.isEmpty || viewport.isEmpty) return;
+    fitMode = !actual;
+    transformViewport = viewport;
     fitScale = math.min(
       viewport.width / frameSize.width,
       viewport.height / frameSize.height,
@@ -99,6 +118,7 @@ class _ScreenViewerState extends State<ScreenViewer> {
     final scale = actual
         ? 1.0 / MediaQuery.devicePixelRatioOf(context)
         : fitScale;
+    settingTransform = true;
     transform.value = Matrix4.identity()
       ..translateByDouble(
         (viewport.width - frameSize.width * scale) / 2,
@@ -106,7 +126,8 @@ class _ScreenViewerState extends State<ScreenViewer> {
         0,
         1,
       )
-      ..scaleByDouble(scale, scale, 1, 1);
+      ..scaleByDouble(scale, scale, scale, 1);
+    settingTransform = false;
   }
 
   void zoom(double factor) {
@@ -124,7 +145,7 @@ class _ScreenViewerState extends State<ScreenViewer> {
         0,
         1,
       )
-      ..scaleByDouble(target, target, 1, 1);
+      ..scaleByDouble(target, target, target, 1);
   }
 
   @override
@@ -140,6 +161,143 @@ class _ScreenViewerState extends State<ScreenViewer> {
     transform.dispose();
     super.dispose();
   }
+
+  List<IconButton> controlButtons(ScreenInfo frame) => [
+    IconButton(
+      onPressed: () => fit(),
+      tooltip: t('fit'),
+      icon: const Icon(Icons.fit_screen),
+    ),
+    IconButton(
+      onPressed: () => fit(actual: true),
+      tooltip: t('actualSize'),
+      icon: const Icon(Icons.crop_free),
+    ),
+    IconButton(
+      onPressed: () => zoom(1.4),
+      tooltip: t('zoomIn'),
+      icon: const Icon(Icons.zoom_in),
+    ),
+    IconButton(
+      onPressed: () => zoom(1 / 1.4),
+      tooltip: t('zoomOut'),
+      icon: const Icon(Icons.zoom_out),
+    ),
+    IconButton(
+      onPressed: frame.stale
+          ? null
+          : () => widget.model.onTarget((origin) async {
+              await widget.model.api.screenshot(
+                origin.deviceId,
+                origin.sessionId,
+              );
+              widget.model.report('screenshotSaved');
+            }),
+      tooltip: t('screenshot'),
+      icon: const Icon(Icons.camera_alt_outlined),
+    ),
+    IconButton(
+      onPressed: () => widget.model.onTarget(
+        (origin) => widget.model.api.reconnectTransport(
+          origin.deviceId,
+          origin.sessionId,
+          'vnc',
+        ),
+      ),
+      tooltip: t('reconnect'),
+      icon: const Icon(Icons.refresh),
+    ),
+    IconButton(
+      onPressed: () => widget.model.onTarget((origin) async {
+        if (frame.hidden == true) {
+          await widget.model.api.startScreen(origin.deviceId, origin.sessionId);
+        } else {
+          await widget.model.api.stopScreen(origin.deviceId, origin.sessionId);
+          if (widget.fullscreen && mounted) {
+            Navigator.maybePop(context);
+          }
+        }
+      }),
+      tooltip: t(frame.hidden == true ? 'showScreen' : 'hideScreen'),
+      icon: Icon(
+        frame.hidden == true ? Icons.visibility : Icons.visibility_off_outlined,
+      ),
+    ),
+    if (widget.fullscreen)
+      IconButton(
+        tooltip: t('remote'),
+        icon: const Icon(Icons.settings_remote),
+        onPressed: () => showModalBottomSheet<void>(
+          context: context,
+          builder: (_) => SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(widget.model.selected?.name ?? t('remote')),
+                  const SizedBox(height: 12),
+                  Dpad(widget.model),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      RemoteButton(
+                        model: widget.model,
+                        code: 4,
+                        label: t('back'),
+                        icon: Icons.arrow_back,
+                      ),
+                      RemoteButton(
+                        model: widget.model,
+                        code: 3,
+                        label: t('home'),
+                        icon: Icons.home,
+                      ),
+                      RemoteButton(
+                        model: widget.model,
+                        code: 24,
+                        label: t('volumeUp'),
+                        icon: Icons.volume_up,
+                      ),
+                      RemoteButton(
+                        model: widget.model,
+                        code: 25,
+                        label: t('volumeDown'),
+                        icon: Icons.volume_down,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    if (!widget.fullscreen)
+      IconButton(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (context) => Scaffold(
+              appBar: AppBar(
+                title: Text(widget.model.selected?.name ?? t('screen')),
+              ),
+              body: SafeArea(
+                child: ScreenViewer(
+                  model: widget.model,
+                  direct: widget.direct,
+                  fullscreen: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+        tooltip: t('fullScreen'),
+        icon: const Icon(Icons.fullscreen),
+      ),
+  ];
 
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<ScreenInfo>(
@@ -158,9 +316,27 @@ class _ScreenViewerState extends State<ScreenViewer> {
                       frame.width.toDouble(),
                       frame.height.toDouble(),
                     );
+                    final viewportFit =
+                        nextFrame.isEmpty || nextViewport.isEmpty
+                        ? 1.0
+                        : math.min(
+                            nextViewport.width / nextFrame.width,
+                            nextViewport.height / nextFrame.height,
+                          );
                     if (generation != frame.generation ||
                         viewport != nextViewport ||
                         frameSize != nextFrame) {
+                      final reset =
+                          generation != frame.generation ||
+                          frameSize != nextFrame;
+                      final anchor = transform.toScene(
+                        Offset(
+                          transformViewport.width / 2,
+                          transformViewport.height / 2,
+                        ),
+                      );
+                      final scale = transform.value.getMaxScaleOnAxis();
+                      final epoch = ++geometryEpoch;
                       release();
                       pointers.clear();
                       multiTouch = false;
@@ -168,10 +344,36 @@ class _ScreenViewerState extends State<ScreenViewer> {
                       viewport = nextViewport;
                       frameSize = nextFrame;
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) fit();
+                        if (!mounted || epoch != geometryEpoch) return;
+                        if (reset || fitMode || frameSize.isEmpty) {
+                          fit();
+                        } else {
+                          fitScale = math.min(
+                            viewport.width / frameSize.width,
+                            viewport.height / frameSize.height,
+                          );
+                          transformViewport = viewport;
+                          settingTransform = true;
+                          transform.value = Matrix4.identity()
+                            ..translateByDouble(
+                              viewport.width / 2 - anchor.dx * scale,
+                              viewport.height / 2 - anchor.dy * scale,
+                              0,
+                              1,
+                            )
+                            ..scaleByDouble(scale, scale, scale, 1);
+                          settingTransform = false;
+                        }
                       });
                     }
                     if (frame.stale) release();
+                    final imageStatus = t(
+                      frame.frameAt > 0 && frame.textureId != null
+                          ? 'lastFrame'
+                          : frame.connected && frame.textureId == null
+                          ? 'screenHidden'
+                          : 'screenUnavailable',
+                    );
                     return Stack(
                       fit: StackFit.expand,
                       children: [
@@ -273,8 +475,8 @@ class _ScreenViewerState extends State<ScreenViewer> {
                               boundaryMargin: const EdgeInsets.all(
                                 double.infinity,
                               ),
-                              minScale: 0.01,
-                              maxScale: 16,
+                              minScale: viewportFit / 2,
+                              maxScale: math.max(8.0, viewportFit * 8),
                               child: SizedBox(
                                 width: frame.width.toDouble(),
                                 height: frame.height.toDouble(),
@@ -296,22 +498,26 @@ class _ScreenViewerState extends State<ScreenViewer> {
                             child: ColoredBox(
                               color: Colors.black.withValues(alpha: 0.65),
                               child: Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Text(
-                                    t(
-                                      frame.frameAt > 0 &&
-                                              frame.textureId != null
-                                          ? 'lastFrame'
-                                          : frame.connected &&
-                                                frame.textureId == null
-                                          ? 'screenHidden'
-                                          : 'screenUnavailable',
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                ),
+                                child: constraints.maxHeight < 80
+                                    ? Icon(
+                                        Icons.tv_off_outlined,
+                                        color: Colors.white,
+                                        size: math.min(
+                                          24,
+                                          constraints.maxHeight,
+                                        ),
+                                        semanticLabel: imageStatus,
+                                      )
+                                    : Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Text(
+                                          imageStatus,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
                               ),
                             ),
                           ),
@@ -322,158 +528,14 @@ class _ScreenViewerState extends State<ScreenViewer> {
               ),
             ),
           ),
-        SizedBox(
-          height: 48,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              IconButton(
-                onPressed: () => fit(),
-                tooltip: t('fit'),
-                icon: const Icon(Icons.fit_screen),
-              ),
-              IconButton(
-                onPressed: () => fit(actual: true),
-                tooltip: t('actualSize'),
-                icon: const Icon(Icons.crop_free),
-              ),
-              IconButton(
-                onPressed: () => zoom(1.4),
-                tooltip: t('zoomIn'),
-                icon: const Icon(Icons.zoom_in),
-              ),
-              IconButton(
-                onPressed: () => zoom(1 / 1.4),
-                tooltip: t('zoomOut'),
-                icon: const Icon(Icons.zoom_out),
-              ),
-              IconButton(
-                onPressed: frame.stale
-                    ? null
-                    : () => widget.model.onTarget((origin) async {
-                        await widget.model.api.screenshot(
-                          origin.deviceId,
-                          origin.sessionId,
-                        );
-                        widget.model.report('screenshotSaved');
-                      }),
-                tooltip: t('screenshot'),
-                icon: const Icon(Icons.camera_alt_outlined),
-              ),
-              IconButton(
-                onPressed: () => widget.model.onTarget(
-                  (origin) => widget.model.api.reconnectTransport(
-                    origin.deviceId,
-                    origin.sessionId,
-                    'vnc',
-                  ),
-                ),
-                tooltip: t('reconnect'),
-                icon: const Icon(Icons.refresh),
-              ),
-              IconButton(
-                onPressed: () => widget.model.onTarget((origin) async {
-                  if (frame.hidden == true) {
-                    await widget.model.api.startScreen(
-                      origin.deviceId,
-                      origin.sessionId,
-                    );
-                  } else {
-                    await widget.model.api.stopScreen(
-                      origin.deviceId,
-                      origin.sessionId,
-                    );
-                    if (widget.fullscreen && context.mounted) {
-                      Navigator.maybePop(context);
-                    }
-                  }
-                }),
-                tooltip: t(frame.hidden == true ? 'showScreen' : 'hideScreen'),
-                icon: Icon(
-                  frame.hidden == true
-                      ? Icons.visibility
-                      : Icons.visibility_off_outlined,
-                ),
-              ),
-              if (widget.fullscreen)
-                IconButton(
-                  tooltip: t('remote'),
-                  icon: const Icon(Icons.settings_remote),
-                  onPressed: () => showModalBottomSheet<void>(
-                    context: context,
-                    builder: (_) => SafeArea(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(widget.model.selected?.name ?? t('remote')),
-                            const SizedBox(height: 12),
-                            Dpad(widget.model),
-                            const SizedBox(height: 12),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                RemoteButton(
-                                  model: widget.model,
-                                  code: 4,
-                                  label: t('back'),
-                                  icon: Icons.arrow_back,
-                                ),
-                                RemoteButton(
-                                  model: widget.model,
-                                  code: 3,
-                                  label: t('home'),
-                                  icon: Icons.home,
-                                ),
-                                RemoteButton(
-                                  model: widget.model,
-                                  code: 24,
-                                  label: t('volumeUp'),
-                                  icon: Icons.volume_up,
-                                ),
-                                RemoteButton(
-                                  model: widget.model,
-                                  code: 25,
-                                  label: t('volumeDown'),
-                                  icon: Icons.volume_down,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              if (!widget.fullscreen)
-                IconButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (context) => Scaffold(
-                        appBar: AppBar(
-                          title: Text(
-                            widget.model.selected?.name ?? t('screen'),
-                          ),
-                        ),
-                        body: SafeArea(
-                          child: ScreenViewer(
-                            model: widget.model,
-                            direct: widget.direct,
-                            fullscreen: true,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  tooltip: t('fullScreen'),
-                  icon: const Icon(Icons.fullscreen),
-                ),
-            ],
+        if (widget.showToolbar || frame.hidden == true)
+          SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: controlButtons(frame),
+            ),
           ),
-        ),
       ],
     ),
   );

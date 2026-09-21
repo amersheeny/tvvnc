@@ -95,6 +95,8 @@
   "leaveKeyboardBody": "The TV has not confirmed your last edit. Leaving will not send it again.",
   "resizeScreen": "Drag to change screen height",
   "screenSize": "Screen height",
+  "screenHeightValue": "{percent}%",
+  "screenControls": "Screen options",
   "editingKeys": "Editing keys",
   "liveEditingBody": "These keys change the text above and on the TV. Enter sends your text, then presses Enter on the TV.",
   "pausedEditingBody": "Live edit is paused, so your text is not being sent. Select Live edit to load the TV’s text, replacing what is here.",

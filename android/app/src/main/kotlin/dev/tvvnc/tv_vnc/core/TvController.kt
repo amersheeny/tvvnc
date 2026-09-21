@@ -468,7 +468,6 @@ class TvController(private val context: Context, private val textures: TextureRe
             val result = router.execute(command)
             if (command.kind == CommandKind.KEY && command.code in setOf(23L, 4L)) {
                 lastNavigation = command.code!! to result
-                android.util.Log.i("TVVNC", "navigation_result transport=${result.transport} delivery=${result.delivery.name}")
             }
             if (requestsOff && powerEpoch == powerIntentEpoch && result.delivery in setOf(Delivery.NOT_SENT, Delivery.REJECTED)) {
                 off = priorOff; store.setPowerOffIntent(profile.id, priorOff)
