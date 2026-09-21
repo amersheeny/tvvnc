@@ -20,6 +20,7 @@ appId: com.asheeny.tvvnc
 - tapOn: "${TV_PATTERN}"
 - tapOn: "Open navigation menu"
 - tapOn: "(?s)Keyboard.*"
+- tapOn: "Clear"
 - tapOn: "Private text"
 - tapOn: "Type or paste text"
 - inputText: "private navigation fixture"
@@ -62,7 +63,7 @@ appId: com.asheeny.tvvnc
 - assertVisible: "Your TVs"
 - takeScreenshot: dialog-dismissed-at-root
 - back
-- assertNotVisible: "Your TVs"
 - takeScreenshot: root-returns-to-android
-- launchApp
-- assertVisible: "Your TVs"
+# The caller verifies Android's resumed application is no longer
+# com.asheeny.tvvnc. Text alone is not an oracle: the retained old test app
+# can be the previous Android task and has the same Your TVs affordance.

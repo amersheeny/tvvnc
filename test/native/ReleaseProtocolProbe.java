@@ -54,19 +54,43 @@ public final class ReleaseProtocolProbe {
             Method receive = null;
             for (Method candidate : Class.forName(args[3]).getDeclaredMethods()) {
               if (Modifier.isStatic(candidate.getModifiers()) && candidate.getReturnType() == type &&
-                  candidate.getParameterCount() == 2 && candidate.getParameterTypes()[0] == SSLSocket.class) {
+                  candidate.getParameterCount() == 3 && candidate.getParameterTypes()[0] == SSLSocket.class) {
                 receive = candidate; break;
               }
             }
             if (receive == null) throw new AssertionError("production pairing decoder missing");
             receive.setAccessible(true);
-            Class<?> predicateType = receive.getParameterTypes()[1];
+            Class<?> phaseType = receive.getParameterTypes()[1];
+            // R8 can inline every BooleanRef construction and remove its
+            // constructor. The probe needs only its zero-initialized boolean;
+            // allocate that fixture without changing production keep rules.
+            Class<?> unsafeType = Class.forName("sun.misc.Unsafe");
+            Field singleton = unsafeType.getDeclaredField("theUnsafe");
+            singleton.setAccessible(true);
+            Object phase = unsafeType.getMethod("allocateInstance", Class.class)
+                .invoke(singleton.get(null), phaseType);
+            Class<?> predicateType = receive.getParameterTypes()[2];
             Object predicate = Proxy.newProxyInstance(predicateType.getClassLoader(), new Class<?>[] { predicateType },
                 (proxy, method, arguments) -> Boolean.TRUE);
             byte[] frame = new byte[input.length + 1]; frame[0] = (byte) input.length;
             System.arraycopy(input, 0, frame, 1, input.length);
-            parsed = receive.invoke(null, new FixtureSocket(frame), predicate);
+            parsed = receive.invoke(null, new FixtureSocket(frame), phase, predicate);
             if (!Boolean.TRUE.equals(type.getMethod("hasSecretAck").invoke(parsed))) throw new AssertionError("ack missing");
+            // Same STATUS_ERROR before code entry and after secret submission
+            // must not produce the same user-facing cause.
+            byte[] refused = {7, 8, 2, 16, (byte) 0x90, 3, 0x5a, 0};
+            assertPairFailure(receive, new FixtureSocket(refused), phase, predicate, "pairing_unavailable");
+            Field phaseField = null;
+            for (Field field : phaseType.getDeclaredFields()) {
+              if (!Modifier.isStatic(field.getModifiers()) && field.getType() == boolean.class) {
+                if (phaseField != null) throw new AssertionError("ambiguous pairing phase");
+                phaseField = field;
+              }
+            }
+            if (phaseField == null) throw new AssertionError("pairing phase missing");
+            phaseField.setAccessible(true); phaseField.setBoolean(phase, true);
+            assertPairFailure(receive, new FixtureSocket(refused), phase, predicate, "pairing_rejected");
+            OUT.println("PAIRING phase-specific rejection fixtures=2");
           } else parsed = parse.invoke(null, (Object) input);
           if (!Arrays.equals(input, (byte[]) serialize.invoke(parsed))) throw new AssertionError("wire mismatch");
         }
@@ -77,6 +101,15 @@ public final class ReleaseProtocolProbe {
       }
     }
     System.exit(failures == 0 ? 0 : 1);
+  }
+  private static void assertPairFailure(Method receive, SSLSocket socket, Object phase,
+      Object predicate, String expected) throws Exception {
+    try {
+      receive.invoke(null, socket, phase, predicate);
+      throw new AssertionError("pairing rejection accepted");
+    } catch (InvocationTargetException error) {
+      if (!expected.equals(error.getCause().getMessage())) throw error;
+    }
   }
   /** Only a framed input source for the real minified receive function. This
    * does not simulate or claim to test a TLS handshake. */

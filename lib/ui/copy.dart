@@ -101,6 +101,16 @@ abstract final class Copy {
     "screenshotSaved": "Screenshot saved on this phone.",
     "compose": "Compose",
     "liveEdit": "Live edit",
+    "closeKeyboard": "Leave Keyboard",
+    "leaveKeyboardTitle": "Leave with an unconfirmed edit?",
+    "leaveKeyboardBody": "The TV has not confirmed your last edit. Leaving will not send it again.",
+    "resizeScreen": "Drag to change screen height",
+    "screenSize": "Screen height",
+    "editingKeys": "Editing keys",
+    "liveEditingBody": "These keys change the text above and on the TV. Enter sends your text, then presses Enter on the TV.",
+    "pausedEditingBody": "Live edit is paused, so your text is not being sent. Select Live edit to load the TV’s text, replacing what is here.",
+    "cursorLeft": "Move cursor left",
+    "cursorRight": "Move cursor right",
     "textHint": "Type or paste text",
     "paste": "Paste",
     "send": "Send",
@@ -188,6 +198,11 @@ abstract final class Copy {
     "authFailed": "The TV did not accept the saved credentials. Check them and try again.",
     "pairingFailed":
         "Pairing failed. Check the code shown on your TV and try again.",
+    "secureConnectionFailed":
+        "TV VNC couldn’t connect securely to Android TV Remote.",
+    "pairingUnavailable": "TV VNC couldn’t complete Android TV Remote pairing.",
+    "pairingTimedOut":
+        "Pairing timed out. Start pairing again to get a new code.",
     "identityChanged": "The TV’s security identity changed. It may have been reset, or another device may be answering. Pair again before controlling it.",
     "connectionFailed":
         "Could not connect. Check the address and local network.",

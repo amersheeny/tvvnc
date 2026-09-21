@@ -30,6 +30,10 @@ class Console extends StatefulWidget {
 class _ConsoleState extends State<Console> with WidgetsBindingObserver {
   String page = 'devices';
   final pageHistory = <LocalHistoryEntry>[];
+  final scaffoldKey = GlobalKey<ScaffoldState>();
+  final keyboardKey = GlobalKey<KeyboardPageState>();
+  bool leavingKeyboard = false;
+  bool drawerOpen = false;
   String? selectedId;
   int seenMessage = 0;
   bool showingPair = false;
@@ -176,12 +180,38 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
     }
   }
 
-  void navigate(String next) {
+  Future<bool> prepareKeyboardExit() async {
+    if (page != 'keyboard') return true;
+    if (leavingKeyboard) return false;
+    leavingKeyboard = true;
+    final device = selectedId;
+    final session = widget.model.target?.sessionId;
+    try {
+      final allowed = await keyboardKey.currentState?.prepareToLeave() ?? true;
+      return allowed &&
+          mounted &&
+          page == 'keyboard' &&
+          selectedId == device &&
+          widget.model.target?.sessionId == session &&
+          ModalRoute.of(context)?.isCurrent == true;
+    } finally {
+      leavingKeyboard = false;
+    }
+  }
+
+  Future<void> closeKeyboard() async {
+    if (!await prepareKeyboardExit() || !mounted) return;
+    if (pageHistory.isNotEmpty) pageHistory.last.remove();
+  }
+
+  Future<void> navigate(String next) async {
     final current = widget.model.selected == null ? 'devices' : page;
     if (next == current ||
         (widget.model.selected == null && next != 'devices')) {
       return;
     }
+    if (current == 'keyboard' && !await prepareKeyboardExit()) return;
+    if (!mounted) return;
     FocusManager.instance.primaryFocus?.unfocus();
     if (next == 'devices') {
       setState(clearPageHistory);
@@ -238,10 +268,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
         onPage: navigate,
         initialMode: 'touchpad',
       ),
-      'keyboard' => KeyboardPage(
-        m,
-        key: ValueKey('keyboard-${m.selected?.id}'),
-      ),
+      'keyboard' => KeyboardPage(m, key: keyboardKey),
       'apps' => CatalogPage(m, key: const ValueKey('apps'), apps: true),
       'inputs' => CatalogPage(m, key: const ValueKey('inputs'), apps: false),
       'allButtons' => AllButtonsPage(m),
@@ -249,114 +276,133 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
       'macros' => ShortcutsPage(m),
       _ => SettingsPage(m, theme: widget.theme, onTheme: widget.onTheme),
     };
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(current == 'devices' ? t('appTitle') : m.selected!.name),
-        actions: current == 'devices'
-            ? null
-            : [
-                IconButton(
-                  tooltip: t('devices'),
-                  icon: const Icon(Icons.devices),
-                  onPressed: () => navigate('devices'),
-                ),
-                PopupMenuButton<String>(
-                  onSelected: (value) async {
-                    if (value == 'connect') await m.connect(m.selected!);
-                    if (value == 'disconnect') await m.disconnect();
-                    if (value == 'pairRemote') {
-                      await m.guard(() => m.api.pairRemote(m.selected!.id));
-                    }
-                    if (value == 'edit' && context.mounted) {
-                      await editDevice(context, m, profile: m.selected);
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    for (final id in [
-                      'connect',
-                      'disconnect',
-                      'pairRemote',
-                      'edit',
-                    ])
-                      PopupMenuItem(value: id, child: Text(t(id))),
-                  ],
-                ),
-              ],
-      ),
-      drawer: NavigationDrawer(
-        selectedIndex: entries.indexWhere((e) => e.$1 == current),
-        onDestinationSelected: (index) {
-          Navigator.pop(context);
-          if (entries[index].$1 == 'devices' || m.selected != null) {
-            navigate(entries[index].$1);
-          }
-        },
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 24, 16, 16),
-            child: Text(
-              t('appTitle'),
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ),
-          for (final entry in entries)
-            NavigationDrawerDestination(
-              icon: Icon(entry.$2),
-              label: Text(t(entry.$1)),
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            if (current != 'devices' && m.networkPermissionDenied)
-              NetworkPermissionPanel(m),
-            if (current != 'devices')
-              Material(
-                color: Theme.of(context).colorScheme.surfaceContainer,
-                child: InkWell(
-                  onTap: () => navigate('diagnostics'),
-                  child: Container(
-                    constraints: const BoxConstraints(minHeight: 48),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
+    return PopScope(
+      canPop: current != 'keyboard' || drawerOpen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop || current != 'keyboard') return;
+        if (scaffoldKey.currentState?.isDrawerOpen == true) {
+          scaffoldKey.currentState!.closeDrawer();
+        } else {
+          unawaited(closeKeyboard());
+        }
+      },
+      child: Scaffold(
+        key: scaffoldKey,
+        onDrawerChanged: (value) => setState(() => drawerOpen = value),
+        appBar: AppBar(
+          title: Text(current == 'devices' ? t('appTitle') : m.selected!.name),
+          actions: current == 'devices'
+              ? null
+              : [
+                  IconButton(
+                    tooltip: t(
+                      current == 'keyboard' ? 'closeKeyboard' : 'devices',
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          m.state?.connectionStage == 'connected'
-                              ? Icons.check_circle_outline
-                              : Icons.info_outline,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
+                    icon: Icon(
+                      current == 'keyboard' ? Icons.close : Icons.devices,
+                    ),
+                    onPressed: current == 'keyboard'
+                        ? closeKeyboard
+                        : () => navigate('devices'),
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'connect') await m.connect(m.selected!);
+                      if (value == 'disconnect') await m.disconnect();
+                      if (value == 'pairRemote') {
+                        await m.guard(() => m.api.pairRemote(m.selected!.id));
+                      }
+                      if (value == 'edit' && context.mounted) {
+                        await editDevice(context, m, profile: m.selected);
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      for (final id in [
+                        'connect',
+                        'disconnect',
+                        'pairRemote',
+                        'edit',
+                      ])
+                        PopupMenuItem(value: id, child: Text(t(id))),
+                    ],
+                  ),
+                ],
+        ),
+        drawer: NavigationDrawer(
+          selectedIndex: entries.indexWhere((e) => e.$1 == current),
+          onDestinationSelected: (index) {
+            Navigator.pop(context);
+            if (entries[index].$1 == 'devices' || m.selected != null) {
+              navigate(entries[index].$1);
+            }
+          },
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 24, 16, 16),
+              child: Text(
+                t('appTitle'),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            for (final entry in entries)
+              NavigationDrawerDestination(
+                icon: Icon(entry.$2),
+                label: Text(t(entry.$1)),
+              ),
+          ],
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              if (current != 'devices' && m.networkPermissionDenied)
+                NetworkPermissionPanel(m),
+              if (current != 'devices')
+                Material(
+                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  child: InkWell(
+                    onTap: () => navigate('diagnostics'),
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: 48),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
                             m.state?.connectionStage == 'connected'
-                                ? '${m.state!.transports.where((p) => p.state == Availability.ready).map((p) => t(p.id == 'remote'
-                                      ? 'androidRemote'
-                                      : p.id == 'sony'
-                                      ? 'sonyApi'
-                                      : 'vnc')).join(', ')} · ${t('connected')}'
-                                : t(
-                                    m.loading
-                                        ? 'connecting'
-                                        : m.state?.connectionStage ??
-                                              'disconnected',
-                                  ),
+                                ? Icons.check_circle_outline
+                                : Icons.info_outline,
+                            size: 18,
                           ),
-                        ),
-                        if (m.state?.power != null) Text(t(m.state!.power!)),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.chevron_right, size: 18),
-                      ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              m.state?.connectionStage == 'connected'
+                                  ? '${m.state!.transports.where((p) => p.state == Availability.ready).map((p) => t(p.id == 'remote'
+                                        ? 'androidRemote'
+                                        : p.id == 'sony'
+                                        ? 'sonyApi'
+                                        : 'vnc')).join(', ')} · ${t('connected')}'
+                                  : t(
+                                      m.loading
+                                          ? 'connecting'
+                                          : m.state?.connectionStage ??
+                                                'disconnected',
+                                    ),
+                            ),
+                          ),
+                          if (m.state?.power != null) Text(t(m.state!.power!)),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.chevron_right, size: 18),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            Expanded(child: body),
-          ],
+              Expanded(child: body),
+            ],
+          ),
         ),
       ),
     );

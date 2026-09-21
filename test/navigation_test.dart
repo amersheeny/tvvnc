@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tv_vnc/bridge/tv_api.g.dart';
@@ -88,6 +90,49 @@ bool canPop(WidgetTester tester) =>
     Navigator.of(tester.element(find.byType(Console))).canPop();
 
 void main() {
+  testWidgets('drawer Back does not leave Keyboard while an edit is in flight', (
+    tester,
+  ) async {
+    final (_, api) = await mount(tester);
+    await chooseTv(tester, 'TV A');
+    await destination(tester, 'Keyboard');
+    api.delayed = Completer<CommandOutcome>();
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: 'かな',
+        selection: TextSelection.collapsed(offset: 2),
+        composing: TextRange(start: 0, end: 2),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    // Opening the drawer blurs the input and legitimately commits composition.
+    // Back must close only the drawer, without invoking the page-exit drain.
+    expect(api.commands.length, 1);
+    await back(tester);
+    expect(find.byType(KeyboardPage), findsOneWidget);
+    expect(
+      tester.state<ScaffoldState>(find.byType(Scaffold).first).isDrawerOpen,
+      isFalse,
+    );
+    expect(api.commands.length, 1);
+    expect(tester.widget<TextField>(find.byType(TextField)).readOnly, isFalse);
+    api.delayed!.complete(CommandOutcome(delivery: Delivery.sent));
+    await tester.pump();
+  });
+  testWidgets('visible Leave Keyboard returns to prior page without TV Back', (
+    tester,
+  ) async {
+    final (_, api) = await mount(tester);
+    await chooseTv(tester, 'TV A');
+    await destination(tester, 'Apps');
+    await destination(tester, 'Keyboard');
+    await tester.tap(find.byTooltip('Leave Keyboard'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CatalogPage), findsOneWidget);
+    expect(api.commands, isEmpty);
+  });
   testWidgets('fullscreen Back returns to the remote before the device list', (
     tester,
   ) async {
@@ -249,8 +294,7 @@ void main() {
     final (model, api) = await mount(tester);
     await chooseTv(tester, 'TV A');
     await destination(tester, 'Keyboard');
-    await tester.tap(find.byIcon(Icons.devices));
-    await tester.pumpAndSettle();
+    await destination(tester, 'Your TVs');
     expect(find.byType(DevicesPage), findsOneWidget);
     expect(canPop(tester), isFalse);
     await chooseTv(tester, 'TV B');

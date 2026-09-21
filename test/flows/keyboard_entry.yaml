@@ -1,0 +1,25 @@
+appId: com.asheeny.tvvnc
+---
+# Existing harmless controller profile; no app-data clearing or real-TV writes.
+- launchApp
+- tapOn: ${TV_PATTERN}
+- assertVisible: 'Direct touch'
+- tapOn: 'Keyboard'
+- assertVisible: 'Leave Keyboard'
+- assertVisible: 'Compose'
+- takeScreenshot: keyboard-ime-on-entry
+- inputText: 'Keyboard UI fixture'
+- assertVisible: 'Keyboard UI fixture'
+- takeScreenshot: keyboard-typed
+- tapOn: 'Leave Keyboard'
+- assertVisible: 'Direct touch'
+- takeScreenshot: keyboard-closed-to-remote
+- tapOn: 'Keyboard'
+- assertVisible: 'Keyboard UI fixture'
+- takeScreenshot: keyboard-reopened
+- back
+- assertVisible: 'Compose'
+- takeScreenshot: keyboard-ime-dismissed
+- back
+- assertVisible: 'Direct touch'
+- takeScreenshot: keyboard-back-to-remote

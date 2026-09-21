@@ -198,6 +198,10 @@ class TvController(private val context: Context, private val textures: TextureRe
             .put("rfbDesktopName", snapshot.screen.desktopName).put("rfbExtendedClipboard", snapshot.screen.extendedClipboard)
             .put("networkPermission", permissions.networkAllowed()).put("ports", JSONArray(probes))
             .put("remoteEvents", JSONArray(synchronized(session.remoteEvents) { session.remoteEvents.toList() }))
+            .put("lastNavigation", session.lastNavigation?.let { (code, outcome) ->
+                JSONObject().put("androidCode", code).put("transport", outcome.transport)
+                    .put("delivery", outcome.delivery.name).put("error", outcome.errorCode)
+            })
             .put("transports", JSONArray(snapshot.transports.map { JSONObject().put("id", it.id).put("state", it.state.name)
                 .put("error", it.errorCode).put("observedAt", it.observedAt) }))
             .put("capabilities", JSONArray(snapshot.capabilities.map { JSONObject().put("id", it.id)
@@ -263,6 +267,9 @@ class TvController(private val context: Context, private val textures: TextureRe
         var viewerWanted = true
         var stage = "connecting"
         var error: String? = null
+        // Only OK/Back, never characters, text, clipboard data, or directional
+        // sequences that could reconstruct entry on an on-screen keyboard.
+        var lastNavigation: Pair<Long, CommandOutcome>? = null
         var voiceState = "idle"
         var pairState = "idle"
         var pairCode: CompletableDeferred<String>? = null
@@ -386,29 +393,48 @@ class TvController(private val context: Context, private val textures: TextureRe
         }
         fun pair() {
             cancelPair()
-            pairJob = scope.launch {
+            val job = scope.launch(start = CoroutineStart.LAZY) {
+                val owner = coroutineContext[Job]
+                fun current() = pairJob === owner && !closed
                 try {
-                    voice.stop(); router.releaseAll(); remote.disconnect()
+                    voice.stop()
+                    withContext(NonCancellable) { router.releaseAll() }
+                    if (!current()) throw CancellationException("pairing_cancelled")
+                    remote.disconnect()
+                    remoteStatus = Availability.NEEDS_SETUP
+                    remoteError = null; error = null
                     pairState = "connecting"; publish()
                     val ip = PrivateNetwork.resolve(profile.host)
                     pairing.pair(ip, profile.pairingPort.toInt()) {
-                        val pending = CompletableDeferred<String>(); pairCode = pending
-                        pairState = "waiting"; publish()
-                        withTimeout(120_000) { pending.await() }
+                        withContext(Dispatchers.Main.immediate) {
+                            if (!current()) throw CancellationException("pairing_cancelled")
+                            val pending = CompletableDeferred<String>(); pairCode = pending
+                            pairState = "waiting"; publish()
+                            awaitPairingCode(pending)
+                        }
                     }
+                    if (!current()) throw CancellationException("pairing_cancelled")
                     profile = store.read(profile.id)
                     remoteError = null; pairState = "paired"
                 } catch (e: Exception) {
                     if (e is CancellationException) throw e
-                    error = "pairing_rejected"; pairState = "failed"
+                    if (current()) {
+                        remoteError = safeError(e); error = remoteError
+                        remoteStatus = Availability.NEEDS_SETUP
+                        pairState = "failed"
+                    }
                 } finally {
-                    pairCode = null; publish()
-                    if (pairJob === coroutineContext[Job]) {
+                    if (pairJob === owner) {
+                        pairCode = null; publish()
                         try { if (pairState == "paired" && !closed) connectRemote(allowPairOwner = true) }
-                        finally { if (pairJob === coroutineContext[Job]) pairJob = null }
+                        finally { if (pairJob === owner) pairJob = null }
                     }
                 }
             }
+            // Main.immediate may execute before launch returns. Assign ownership
+            // first, including for a failure before the first suspension.
+            pairJob = job
+            job.start()
         }
         fun cancelPair() {
             pairing.cancel(); pairCode?.cancel(); pairCode = null
@@ -440,6 +466,10 @@ class TvController(private val context: Context, private val textures: TextureRe
                 waking?.cancel(); cancelMacro(); voice.stop(discardAudio = true)
             }
             val result = router.execute(command)
+            if (command.kind == CommandKind.KEY && command.code in setOf(23L, 4L)) {
+                lastNavigation = command.code!! to result
+                android.util.Log.i("TVVNC", "navigation_result transport=${result.transport} delivery=${result.delivery.name}")
+            }
             if (requestsOff && powerEpoch == powerIntentEpoch && result.delivery in setOf(Delivery.NOT_SENT, Delivery.REJECTED)) {
                 off = priorOff; store.setPowerOffIntent(profile.id, priorOff)
             }
@@ -737,12 +767,7 @@ class TvController(private val context: Context, private val textures: TextureRe
                 sonyAt > 0 -> "unavailable"
                 else -> "connecting"
             }
-            val sonyStatus = when {
-                s.power != null || s.available -> Availability.READY
-                s.errors.values.any { it == "authentication_required" } -> Availability.NEEDS_SETUP
-                sonyAt == 0L -> Availability.UNKNOWN
-                else -> Availability.UNAVAILABLE
-            }
+            val sonyStatus = s.availability(observed = sonyAt != 0L)
             val caps = mutableListOf<CapabilityInfo>()
             fun cap(name: String, state: Availability, transport: String, at: Long = now, detail: String? = null) {
                 caps.add(CapabilityInfo(name, state, transport, at, detail))
@@ -802,11 +827,16 @@ class TvController(private val context: Context, private val textures: TextureRe
     }
     companion object {
         fun blankScreen() = ScreenInfo(null, 0, 0, 0, 0, false, true, null)
+        suspend fun awaitPairingCode(pending: Deferred<String>, timeoutMs: Long = 120_000): String =
+            withTimeoutOrNull(timeoutMs) { pending.await() } ?: throw LocalRequestError("pairing_timeout")
         fun safeError(error: Exception): String = when {
             error is CommandNotSent -> error.reason
             error is DeliveryUnknown || error is HttpDeliveryUnknown -> "delivery_unknown"
             error is SecurityException && error.message == "identity_changed" -> "identity_changed"
             error is java.security.cert.CertificateException || error.cause is java.security.cert.CertificateException -> "identity_changed"
+            error is javax.net.ssl.SSLException -> "secure_connection_failed"
+            error is java.io.IOException && error.message in setOf("pairing_rejected", "pairing_unavailable", "pairing_protocol_error") -> error.message!!
+            error is IllegalArgumentException && error.message == "pairing_rejected" -> "pairing_rejected"
             else -> SonyTransport.safeError(error)
         }
         suspend fun attempt(transport: String, block: suspend () -> Unit): CommandOutcome = try {

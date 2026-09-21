@@ -119,6 +119,14 @@ TvModel model(RecordingApi api) {
   return m;
 }
 
+TvModel composeModel(RecordingApi api) {
+  final m = model(api);
+  m.state!
+    ..editor = null
+    ..currentApp = 'test.app';
+  return m;
+}
+
 void main() {
   testWidgets('late phone paste cannot replace a cleared and retyped buffer', (
     tester,
@@ -129,7 +137,7 @@ void main() {
       (call) async =>
           call.method == 'Clipboard.getData' ? clipboard.future : null,
     );
-    final m = model(RecordingApi());
+    final m = composeModel(RecordingApi());
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
     await tester.tap(find.text('Private text'));
     await tester.pump();
@@ -215,7 +223,7 @@ void main() {
   testWidgets(
     'clearing a revealed sensitive buffer restores ordinary input with a new client',
     (tester) async {
-      final m = model(RecordingApi());
+      final m = composeModel(RecordingApi());
       await tester.pumpWidget(
         MaterialApp(home: Scaffold(body: KeyboardPage(m))),
       );
@@ -228,7 +236,8 @@ void main() {
           .where((c) => c.method == 'TextInput.setClient')
           .length;
       await tester.tap(find.text('Clear'));
-      await tester.pump();
+      // The owned focus node reattaches after the security-mode frame.
+      await tester.pumpAndSettle();
       expect(
         tester.testTextInput.log
             .where((c) => c.method == 'TextInput.setClient')
@@ -343,13 +352,15 @@ void main() {
     );
   }
   testWidgets(
-    'failed live edit restores Compose without overwriting its draft',
+    'failed live edit stays recoverable and leaves the separate Compose draft intact',
     (tester) async {
       final api = RecordingApi()..delayed = Completer<CommandOutcome>();
       final m = model(api);
       await tester.pumpWidget(
         MaterialApp(home: Scaffold(body: KeyboardPage(m))),
       );
+      await tester.tap(find.text('Compose'));
+      await tester.pump();
       await tester.enterText(find.byType(TextField), 'saved compose');
       await tester.tap(find.text('Live edit'));
       await tester.pump();
@@ -358,6 +369,12 @@ void main() {
       api.delayed!.complete(
         CommandOutcome(delivery: Delivery.rejected, errorCode: 'no_editor'),
       );
+      await tester.pump();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'failed live buffer',
+      );
+      await tester.tap(find.text('Compose'));
       await tester.pump();
       expect(
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
@@ -376,6 +393,8 @@ void main() {
     m.state!.editor!.text = 'TV field';
     m.state!.editor!.end = 8;
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
+    await tester.tap(find.text('Compose'));
+    await tester.pumpAndSettle();
     tester.testTextInput.updateEditingValue(
       const TextEditingValue(
         text: 'かな',
@@ -529,7 +548,7 @@ void main() {
         .where((call) => call.method == 'TextInput.setClient')
         .length;
     await tester.tap(find.text('Private text'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.pump();
     final clients = tester.testTextInput.log
         .where((call) => call.method == 'TextInput.setClient')
@@ -558,7 +577,7 @@ void main() {
     'forgetting an open TV clears its ordinary draft after editor teardown',
     (tester) async {
       final api = SavedApi();
-      final m = model(api);
+      final m = composeModel(api);
       api.saved['a'] = m.selected!;
       m.profiles = List.unmodifiable([m.selected!]);
       await tester.pumpWidget(
@@ -678,7 +697,7 @@ void main() {
     tester,
   ) async {
     final api = RecordingApi();
-    final m = model(api);
+    final m = composeModel(api);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
     await tester.enterText(find.byType(TextField), 'Unsent local draft');
     await tester.pumpWidget(const SizedBox());
@@ -931,7 +950,7 @@ void main() {
   });
   testWidgets('composition stays local until Send', (tester) async {
     final api = RecordingApi();
-    final m = model(api);
+    final m = composeModel(api);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
     await tester.enterText(find.byType(TextField).first, 'שלום 😀 phrase');
     await tester.pump(const Duration(seconds: 1));

@@ -148,13 +148,26 @@ Future<bool> confirm(
   BuildContext context,
   String title,
   String body,
-  String action,
-) async =>
+  String action, {
+  String? extraBody,
+}) async =>
     await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(t(title)),
-        content: Text(t(body)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(t(body)),
+              if (extraBody != null) ...[
+                const SizedBox(height: 12),
+                Text(t(extraBody)),
+              ],
+            ],
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -232,12 +245,16 @@ class RemoteButton extends StatefulWidget {
     required this.label,
     required this.icon,
     this.compact = false,
+    this.beforePress,
+    this.onDispatch,
   });
   final TvModel model;
   final int code;
   final String label;
   final IconData icon;
   final bool compact;
+  final Future<bool> Function()? beforePress;
+  final VoidCallback? onDispatch;
   @override
   State<RemoteButton> createState() => _RemoteButtonState();
 }
@@ -253,7 +270,7 @@ class _RemoteButtonState extends State<RemoteButton> {
         (b) => b.androidCode == widget.code && b.canHold,
       ) ==
       true;
-  void start(TvTarget? captured) {
+  Future<void> start(TvTarget? captured) async {
     if (press != null) return;
     if (!canHold) {
       widget.model.report('holdUnavailable');
@@ -262,6 +279,13 @@ class _RemoteButtonState extends State<RemoteButton> {
     origin = captured;
     if (origin == null) return;
     press = '${DateTime.now().microsecondsSinceEpoch}-${widget.code}';
+    final held = press;
+    if (widget.beforePress != null && !await widget.beforePress!()) {
+      if (press == held) release();
+      return;
+    }
+    if (!mounted || disposing || press != held) return;
+    widget.onDispatch?.call();
     unawaited(
       widget.model.command(
         CommandKind.keyDown,
@@ -349,7 +373,7 @@ class _RemoteButtonState extends State<RemoteButton> {
                     ? Theme.of(context).colorScheme.primaryContainer
                     : null,
               ),
-              onPressed: () {
+              onPressed: () async {
                 if (!available) {
                   explainControl(context, widget.model, widget.label);
                   return;
@@ -365,6 +389,11 @@ class _RemoteButtonState extends State<RemoteButton> {
                   widget.model.report('notSent');
                   return;
                 }
+                if (widget.beforePress != null && !await widget.beforePress!()) {
+                  return;
+                }
+                if (!mounted || disposing) return;
+                widget.onDispatch?.call();
                 unawaited(
                   widget.model.command(
                     CommandKind.key,

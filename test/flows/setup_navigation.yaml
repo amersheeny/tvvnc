@@ -4,7 +4,7 @@ appId: com.asheeny.tvvnc
 - tapOn: "Enter address"
 - tapOn: "TV name"
 - inputText: "Navigation check"
-- tapOn: "Address"
+- tapOn: "TV address"
 - inputText: "${TV_ADDRESS}"
 - tapOn: "Save"
 - assertVisible: "(?s)Navigation check.*"

@@ -18,7 +18,14 @@ data class SonySnapshot(
     val buttons: List<TvButton> = emptyList(), val inputs: List<TvInput> = emptyList(),
     val apps: List<TvApplication> = emptyList(), val methods: Map<String, String> = emptyMap(),
     val errors: Map<String, String> = emptyMap(), val latencyMs: Long? = null,
-)
+) {
+    fun availability(observed: Boolean): Availability = when {
+        errors.values.any { it == "authentication_required" } -> Availability.NEEDS_SETUP
+        power != null || available -> Availability.READY
+        !observed -> Availability.UNKNOWN
+        else -> Availability.UNAVAILABLE
+    }
+}
 
 /** Sony semantics are discovered from this TV. Static names below map semantic
  * controls to reported command names, never substitute hard-coded IRCC values. */
