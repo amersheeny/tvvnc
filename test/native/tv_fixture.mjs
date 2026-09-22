@@ -23,7 +23,8 @@ const clients = new Set();
 const psk = 'fixture-only';
 const state = {features: 615, power: 'active', volume: 20, muted: false, target: 'speaker',
   minimum: 0, maximum: 100, input: 'extInput:hdmi?port=1', inputId: 10, content: 20,
-  text: 'Example search', type: 1, options: 3, start: 14, end: 14, ignoreWake: false};
+  text: 'Example search', type: 1, options: 3, actionLabel: null, actionId: null,
+  start: 14, end: 14, ignoreWake: false};
 const log = value => process.stdout.write(`${JSON.stringify(value)}\n`);
 const varint = value => {
   let n = BigInt.asUintN(64, BigInt(value)); const out = [];
@@ -105,7 +106,9 @@ const pair = tls.createServer(tlsOptions, socket => {
   });
 });
 function editor(socket) {
-  const info = message(scalar(1, state.inputId), scalar(2, state.type), scalar(3, state.options), bytes(12, 'fixture.tv'));
+  const info = message(scalar(1, state.inputId), scalar(2, state.type), scalar(3, state.options),
+    state.actionLabel === null ? Buffer.alloc(0) : bytes(5, state.actionLabel),
+    state.actionId === null ? Buffer.alloc(0) : scalar(6, state.actionId), bytes(12, 'fixture.tv'));
   send(socket, bytes(20, message(bytes(1, info), bytes(2, textStatus()))));
   send(socket, bytes(21, message(scalar(1, 1), scalar(2, 1))));
 }
@@ -231,7 +234,7 @@ readline.createInterface({input: process.stdin}).on('line', line => {
   if (line === 'quit') return process.exit(0);
   try {
     const change = JSON.parse(line); Object.assign(state, change);
-    if ('text' in change || 'type' in change || 'options' in change) {
+    if (['text', 'type', 'options', 'actionLabel', 'actionId'].some(key => key in change)) {
       state.inputId++; state.content++; state.start = state.end = state.text.length;
       for (const socket of clients) editor(socket);
     }

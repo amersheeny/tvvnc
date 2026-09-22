@@ -9,9 +9,9 @@ remains the data-preserving development build, not a Play-signed release.
 
 ## Latest local checkpoint
 
-App `e24835b`, native Remote library `a17e093` are committed. The APK is
-`/Users/amsh/worktrees/tvVNC/releases/tvvnc-e24835b-debug.apk`, SHA-256
-`936c270bd2f92ac68c1e318a551ecf50a3b10b5009938b3f782822f253f87dff`.
+App `163ef6d`, native Remote library `a17e093` are committed. The APK is
+`/Users/amsh/worktrees/tvVNC/releases/tvvnc-163ef6d-debug.apk`, SHA-256
+`2db9ef574f6181fb373a8df7530015ed916a752a92e1a68407a18bfb8aa23dce`.
 It is installed on the headed emulator, not the physical Samsung. The last
 phone installation remains the artifact recorded below; subsequent USB and
 wireless-ADB discovery do not currently show the phone.
@@ -22,9 +22,9 @@ type, IME options and action information. Phone selection is sent in native
 edit batches; TV-declared passwords are masked before prefill. Native pending
 echoes keep keyed fingerprints instead of historical plaintext values.
 
-The latest Flutter run reports 143 passing tests in
-`/Users/amsh/worktrees/tvVNC/dialog-lifetime-full-tests.log`; analyzer is clean
-in `/Users/amsh/worktrees/tvVNC/dialog-lifetime-analyze.log`. Android app units
+The latest Flutter run reports 153 passing tests in
+`/Users/amsh/worktrees/tvVNC/editor-edges-final-tests.log`; analyzer is clean
+in `/Users/amsh/worktrees/tvVNC/editor-edges-final-analyze.log`. Android app units
 passed in `/Users/amsh/worktrees/tvVNC/editor-metadata-app-tests.log`; the
 unchanged native library inputs retain their full-suite and metadata-test
 results in `/Users/amsh/worktrees/tvVNC/editor-metadata-core-tests.log` and
@@ -50,6 +50,15 @@ light and dark/130%-text captures in
 `/Users/amsh/worktrees/tvVNC/editor-fixture-password/screenshots` and
 `/Users/amsh/worktrees/tvVNC/editor-fixture-password-dark-large/screenshots`.
 Temporary emulator night/font settings were restored to no/1.0.
+
+Later edge cases and their source/test dispositions are recorded in
+`/Users/amsh/worktrees/tvVNC/worktree/docs/reviews/editor-metadata-edge-resolution.md`:
+password reveal/Clear/retype protection, custom action label/ID agreement,
+Next/custom action focus, mouse-control focus and editable accessibility bounds.
+The updated emulator flows establish cursor insertion, native action 91 and
+password masking on return from background; they do not extend physical-TV
+claims. One local metadata fixup commit remains to be autosquashed before
+source publication.
 
 These fixtures are not the physical Sony. Their RFB picture is a test pattern,
 not an editor rendering. New physical caret, password, numeric/multiline and

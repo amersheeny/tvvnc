@@ -1,0 +1,11 @@
+appId: com.asheeny.tvvnc
+---
+- assertVisible: "Custom fixture"
+- tapOn: "Custom fixture"
+- inputText: "X"
+- assertVisible: "Custom fixtureX"
+- tapOn: "Confirm fixture"
+- takeScreenshot: custom-action-completed
+- inputText: "Y"
+- assertVisible: "Custom fixtureXY"
+- takeScreenshot: custom-action-focus-retained
