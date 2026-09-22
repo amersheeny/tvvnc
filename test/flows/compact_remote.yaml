@@ -1,0 +1,45 @@
+appId: com.asheeny.tvvnc
+---
+# Uses only the task-owned loopback framebuffer fixture, never the real TV.
+- launchApp
+- tapOn: '(?s)Resize fixture.*'
+- extendedWaitUntil:
+    visible: 'Live TV screen'
+    timeout: 30000
+- assertVisible: 'Power'
+- assertNotVisible: 'Direct touch'
+- assertNotVisible: 'Touchpad'
+- assertNotVisible: 'Turn on'
+- takeScreenshot: compact-remote
+- tapOn: 'Show menu'
+- assertVisible: 'Remote'
+- assertVisible: 'Touchpad'
+- assertVisible: 'Direct touch'
+- takeScreenshot: modes-menu
+- tapOn: 'Touchpad'
+- takeScreenshot: touchpad
+- tapOn: 'Show menu'
+- tapOn: 'Direct touch'
+- takeScreenshot: direct-touch-confirmation
+- tapOn: 'Cancel'
+- tapOn: 'Show menu'
+- tapOn: 'Direct touch'
+- tapOn: 'Enable'
+- takeScreenshot: direct-touch
+- tapOn: 'Show menu'
+- tapOn: 'Remote'
+- tapOn: 'Power'
+- assertVisible: '(?s)Turn on.*'
+- assertVisible: '(?s)Turn off.*'
+- takeScreenshot: power-menu
+- back
+- setOrientation: LANDSCAPE_LEFT
+- assertVisible: 'Power'
+- takeScreenshot: remote-landscape
+- tapOn: 'Show menu'
+- takeScreenshot: modes-landscape
+- back
+- tapOn: 'Power'
+- takeScreenshot: power-landscape
+- back
+- setOrientation: PORTRAIT

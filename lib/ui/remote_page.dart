@@ -105,18 +105,18 @@ class RemotePage extends StatefulWidget {
     super.key,
     required this.model,
     required this.onPage,
-    this.initialMode = 'remote',
+    this.mode = 'remote',
   });
   final TvModel model;
   final ValueChanged<String> onPage;
-  final String initialMode;
+  final String mode;
   @override
   State<RemotePage> createState() => _RemotePageState();
 }
 
 class _RemotePageState extends State<RemotePage> {
   final screenKey = GlobalKey();
-  late String mode = widget.initialMode;
+  String? powerMenuDevice;
   Availability powerState(String id) =>
       widget.model.state?.capabilities
           .where((c) => c.id == id)
@@ -124,6 +124,7 @@ class _RemotePageState extends State<RemotePage> {
           ?.state ??
       Availability.unknown;
   void power(CommandKind kind, String id) {
+    if (!mounted || widget.model.selected?.id != powerMenuDevice) return;
     final state =
         widget.model.state?.capabilities
             .where((c) => c.id == id)
@@ -145,266 +146,262 @@ class _RemotePageState extends State<RemotePage> {
         ? m.selected!.layout
         : defaultLayout;
     final standardLayout = layout.join('|') == defaultLayout.join('|');
-    Widget remoteControlsList({bool shrink = false}) => ListView(
-      shrinkWrap: shrink,
-      physics: shrink ? const NeverScrollableScrollPhysics() : null,
-      padding: const EdgeInsets.all(16),
-      children: [
-        if (m.state?.transports.any(
-              (p) => p.id == 'remote' && p.state == Availability.needsSetup,
-            ) ==
-            true)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Column(
-              children: [
-                Text(t('pairingRequired')),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    if (captured != null) {
-                      m.guard(() => m.api.pairRemote(captured.deviceId));
-                    }
-                  },
-                  icon: const Icon(Icons.link),
-                  label: Text(t('pairRemote')),
+    final powerFooter = Align(
+      alignment: AlignmentDirectional.centerEnd,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: PopupMenuButton<String>(
+          tooltip: t('power'),
+          icon: const Icon(Icons.power_settings_new, size: 24),
+          style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+          onOpened: () => powerMenuDevice = m.selected?.id,
+          onSelected: (id) => power(switch (id) {
+            'powerOn' => CommandKind.powerOn,
+            'powerOff' => CommandKind.powerOff,
+            _ => CommandKind.powerToggle,
+          }, id),
+          itemBuilder: (_) => [
+            for (final id in ['powerOn', 'powerOff', 'powerToggle'])
+              PopupMenuItem(
+                value: id,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(t(id)),
+                      if (!canTry(powerState(id)))
+                        Text(
+                          availability(powerState(id)),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 8,
-          runSpacing: 4,
-          children: ['remote', 'touchpad', 'directTouch']
-              .map(
-                (id) => ChoiceChip(
-                  label: Text(t(id)),
-                  selected: mode == id,
-                  onSelected: (_) async {
-                    if (id == 'directTouch' &&
-                        m.selected?.pointerVerified != true) {
-                      if (!await confirm(
-                        context,
-                        'pointerTitle',
-                        'pointerBody',
-                        'enable',
-                      )) {
-                        return;
-                      }
-                    }
-                    if (mounted) setState(() => mode = id);
-                  },
-                ),
-              )
-              .toList(),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 8,
-          children: [
-            availabilityHint(
-              powerState('powerOn'),
-              FilledButton.icon(
-                onPressed: () => power(CommandKind.powerOn, 'powerOn'),
-                icon: const Icon(Icons.power_settings_new),
-                label: Text(t('powerOn')),
               ),
-            ),
-            availabilityHint(
-              powerState('powerOff'),
-              OutlinedButton(
-                onPressed: () => power(CommandKind.powerOff, 'powerOff'),
-                child: Text(t('powerOff')),
-              ),
-            ),
-            PopupMenuButton<String>(
-              tooltip: t('power'),
-              onSelected: (_) => power(CommandKind.powerToggle, 'powerToggle'),
-              itemBuilder: (_) => [
-                PopupMenuItem(value: 'toggle', child: Text(t('powerToggle'))),
-              ],
-            ),
           ],
         ),
-        const SizedBox(height: 12),
-        if (mode == 'touchpad') Touchpad(m),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            if (standardLayout)
+      ),
+    );
+    Widget remoteControlsList({
+      bool shrink = false,
+      bool scrollFooter = false,
+    }) {
+      final list = ListView(
+        shrinkWrap: shrink,
+        physics: shrink ? const NeverScrollableScrollPhysics() : null,
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (m.state?.transports.any(
+                (p) => p.id == 'remote' && p.state == Availability.needsSetup,
+              ) ==
+              true)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                children: [
+                  Text(t('pairingRequired')),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      if (captured != null) {
+                        m.guard(() => m.api.pairRemote(captured.deviceId));
+                      }
+                    },
+                    icon: const Icon(Icons.link),
+                    label: Text(t('pairRemote')),
+                  ),
+                ],
+              ),
+            ),
+          if (widget.mode == 'touchpad') Touchpad(m),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              if (standardLayout)
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final id in ['volumeUp', 'volumeDown', 'mute'])
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: RemoteButton(
+                          model: m,
+                          code: controls[id]!.$1,
+                          label: t(id),
+                          icon: controls[id]!.$2,
+                          compact: true,
+                        ),
+                      ),
+                  ],
+                )
+              else
+                const SizedBox(width: 56),
+              Flexible(child: Dpad(m)),
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  for (final id in ['volumeUp', 'volumeDown', 'mute'])
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 3),
-                      child: RemoteButton(
-                        model: m,
-                        code: controls[id]!.$1,
-                        label: t(id),
-                        icon: controls[id]!.$2,
-                        compact: true,
-                      ),
+                  IconButton.filledTonal(
+                    tooltip: t('keyboard'),
+                    constraints: const BoxConstraints(
+                      minHeight: 56,
+                      minWidth: 56,
                     ),
+                    onPressed: () => widget.onPage('keyboard'),
+                    icon: const Icon(Icons.keyboard_outlined),
+                  ),
+                  const SizedBox(height: 6),
+                  VoiceButton(m, compact: true),
                 ],
-              )
-            else
-              const SizedBox(width: 56),
-            Flexible(child: Dpad(m)),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton.filledTonal(
-                  tooltip: t('keyboard'),
-                  constraints: const BoxConstraints(
-                    minHeight: 56,
-                    minWidth: 56,
-                  ),
-                  onPressed: () => widget.onPage('keyboard'),
-                  icon: const Icon(Icons.keyboard_outlined),
-                ),
-                const SizedBox(height: 6),
-                VoiceButton(m, compact: true),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            Widget button(String id, double width) {
-              final control = controls[id];
-              if (control != null) {
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              Widget button(String id, double width) {
+                final control = controls[id];
+                if (control != null) {
+                  return SizedBox(
+                    width: width,
+                    child: RemoteButton(
+                      model: m,
+                      code: control.$1,
+                      label: t(id),
+                      icon: control.$2,
+                    ),
+                  );
+                }
+                final found = m.state?.buttons
+                    .where((b) => b.id == id)
+                    .firstOrNull;
+                if (found == null) return const SizedBox.shrink();
+                if (found.androidCode != null) {
+                  return SizedBox(
+                    width: width,
+                    child: RemoteButton(
+                      model: m,
+                      code: found.androidCode!,
+                      label: t(found.name),
+                      icon: Icons.radio_button_unchecked,
+                    ),
+                  );
+                }
                 return SizedBox(
                   width: width,
-                  child: RemoteButton(
-                    model: m,
-                    code: control.$1,
-                    label: t(id),
-                    icon: control.$2,
+                  child: availabilityHint(
+                    found.state,
+                    ActionTile(
+                      found.name,
+                      Icons.radio_button_unchecked,
+                      () => canTry(found.state)
+                          ? m.command(
+                              CommandKind.sony,
+                              origin: captured,
+                              value: id,
+                            )
+                          : explainControl(context, m, found.name),
+                    ),
                   ),
                 );
               }
-              final found = m.state?.buttons
-                  .where((b) => b.id == id)
-                  .firstOrNull;
-              if (found == null) return const SizedBox.shrink();
-              if (found.androidCode != null) {
-                return SizedBox(
-                  width: width,
-                  child: RemoteButton(
-                    model: m,
-                    code: found.androidCode!,
-                    label: t(found.name),
-                    icon: Icons.radio_button_unchecked,
-                  ),
-                );
-              }
-              return SizedBox(
-                width: width,
-                child: availabilityHint(
-                  found.state,
-                  ActionTile(
-                    found.name,
-                    Icons.radio_button_unchecked,
-                    () => canTry(found.state)
-                        ? m.command(
-                            CommandKind.sony,
-                            origin: captured,
-                            value: id,
-                          )
-                        : explainControl(context, m, found.name),
-                  ),
-                ),
-              );
-            }
 
-            if (standardLayout) {
-              const rows = [
-                ['back', 'home'],
-                ['options', 'input'],
-                ['guide', 'info'],
-                ['channelUp', 'channelDown'],
-                ['rewind', 'playPause', 'fastForward'],
-                ['previous', 'stop', 'next'],
-              ];
-              return Column(
-                children: [
-                  for (final row in rows)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: IntrinsicHeight(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            for (
-                              var index = 0;
-                              index < row.length;
-                              index++
-                            ) ...[
-                              if (index != 0) const SizedBox(width: 8),
-                              button(
-                                row[index],
-                                row.length == 1
-                                    ? (constraints.maxWidth - 8) / 2
-                                    : (constraints.maxWidth -
-                                              (row.length - 1) * 8) /
-                                          row.length,
-                              ),
+              if (standardLayout) {
+                const rows = [
+                  ['back', 'home'],
+                  ['options', 'input'],
+                  ['guide', 'info'],
+                  ['channelUp', 'channelDown'],
+                  ['rewind', 'playPause', 'fastForward'],
+                  ['previous', 'stop', 'next'],
+                ];
+                return Column(
+                  children: [
+                    for (final row in rows)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: IntrinsicHeight(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (
+                                var index = 0;
+                                index < row.length;
+                                index++
+                              ) ...[
+                                if (index != 0) const SizedBox(width: 8),
+                                button(
+                                  row[index],
+                                  row.length == 1
+                                      ? (constraints.maxWidth - 8) / 2
+                                      : (constraints.maxWidth -
+                                                (row.length - 1) * 8) /
+                                            row.length,
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                );
+              }
+              final columns = constraints.maxWidth >= 520 ? 4 : 2;
+              final width =
+                  (constraints.maxWidth - (columns - 1) * 8) / columns;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: layout.map((id) => button(id, width)).toList(),
               );
-            }
-            final columns = constraints.maxWidth >= 520 ? 4 : 2;
-            final width = (constraints.maxWidth - (columns - 1) * 8) / columns;
-            return Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: layout.map((id) => button(id, width)).toList(),
-            );
-          },
-        ),
-        const SizedBox(height: 16),
-        if (m.state?.volume != null &&
-            m.state?.volumeMax != null &&
-            m.state?.capabilities.any(
-                  (c) =>
-                      c.id == 'absoluteVolume' &&
-                      c.state == Availability.advertised,
-                ) ==
-                true)
-          VolumeSlider(m),
-        const SizedBox(height: 12),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 8,
-          children: [
-            TextButton.icon(
-              onPressed: () => widget.onPage('inputs'),
-              icon: const Icon(Icons.input),
-              label: Text(t('inputs')),
-            ),
-            TextButton.icon(
-              onPressed: () => widget.onPage('apps'),
-              icon: const Icon(Icons.apps),
-              label: Text(t('apps')),
-            ),
-            TextButton.icon(
-              onPressed: () => widget.onPage('allButtons'),
-              icon: const Icon(Icons.dialpad),
-              label: Text(t('allButtons')),
-            ),
-          ],
-        ),
-      ],
-    );
+            },
+          ),
+          const SizedBox(height: 16),
+          if (m.state?.volume != null &&
+              m.state?.volumeMax != null &&
+              m.state?.capabilities.any(
+                    (c) =>
+                        c.id == 'absoluteVolume' &&
+                        c.state == Availability.advertised,
+                  ) ==
+                  true)
+            VolumeSlider(m),
+          const SizedBox(height: 12),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            children: [
+              TextButton.icon(
+                onPressed: () => widget.onPage('inputs'),
+                icon: const Icon(Icons.input),
+                label: Text(t('inputs')),
+              ),
+              TextButton.icon(
+                onPressed: () => widget.onPage('apps'),
+                icon: const Icon(Icons.apps),
+                label: Text(t('apps')),
+              ),
+              TextButton.icon(
+                onPressed: () => widget.onPage('allButtons'),
+                icon: const Icon(Icons.dialpad),
+                label: Text(t('allButtons')),
+              ),
+            ],
+          ),
+          if (shrink || scrollFooter) powerFooter,
+        ],
+      );
+      if (shrink || scrollFooter) return list;
+      return Column(
+        children: [
+          Expanded(child: list),
+          powerFooter,
+        ],
+      );
+    }
+
     return ValueListenableBuilder<ScreenInfo>(
       valueListenable: m.screen,
       builder: (context, frame, _) => LayoutBuilder(
@@ -412,11 +409,14 @@ class _RemotePageState extends State<RemotePage> {
           final wide =
               box.maxWidth > 760 && box.maxHeight >= 56 && frame.hidden != true;
           final short = !wide && box.maxHeight < 192;
-          final remote = remoteControlsList(shrink: short);
+          final remote = remoteControlsList(
+            shrink: short,
+            scrollFooter: box.maxHeight < 56 + 48,
+          );
           final preview = ResizableScreen(
             key: screenKey,
             model: m,
-            direct: mode == 'directTouch',
+            direct: widget.mode == 'directTouch',
             height: m.remoteScreenHeight,
             availableHeight: box.maxHeight,
             defaultViewerHeight: wide

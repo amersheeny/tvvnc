@@ -9,7 +9,7 @@ appId: com.asheeny.tvvnc
 - assertVisible: "Hide text"
 - takeScreenshot: software-keyboard-dismissed
 - back
-- assertVisible: "Direct touch"
+- assertVisible: "Power"
 - takeScreenshot: keyboard-page-returned-to-remote
 - back
 - assertVisible: "Your TVs"

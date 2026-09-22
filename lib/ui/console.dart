@@ -29,6 +29,8 @@ class Console extends StatefulWidget {
 
 class _ConsoleState extends State<Console> with WidgetsBindingObserver {
   String page = 'devices';
+  String remoteMode = 'remote';
+  String? menuDevice;
   final pageHistory = <LocalHistoryEntry>[];
   final scaffoldKey = GlobalKey<ScaffoldState>();
   final keyboardKey = GlobalKey<KeyboardPageState>();
@@ -175,6 +177,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
     // must not restore pages from an old TV or rebuild during disposal.
     pageHistory.clear();
     page = 'devices';
+    remoteMode = 'remote';
     for (final entry in entries.reversed) {
       entry.remove();
     }
@@ -239,6 +242,23 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
     navigate('remote');
   }
 
+  Future<void> selectRemoteMode(String mode) async {
+    final device = menuDevice;
+    bool stillRemote() =>
+        mounted &&
+        page == 'remote' &&
+        device != null &&
+        widget.model.selected?.id == device;
+    if (!stillRemote() || mode == remoteMode) return;
+    if (mode == 'directTouch' &&
+        widget.model.selected?.pointerVerified != true) {
+      if (!await confirm(context, 'pointerTitle', 'pointerBody', 'enable')) {
+        return;
+      }
+    }
+    if (stillRemote()) setState(() => remoteMode = mode);
+  }
+
   @override
   Widget build(BuildContext context) {
     final m = widget.model;
@@ -252,7 +272,6 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
       ('devices', Icons.tv),
       ('remote', Icons.settings_remote_outlined),
       ('allButtons', Icons.dialpad),
-      ('touchpad', Icons.swipe),
       ('keyboard', Icons.keyboard_outlined),
       ('apps', Icons.apps),
       ('inputs', Icons.input),
@@ -266,12 +285,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
         key: ValueKey('remote-${m.selected?.id}'),
         model: m,
         onPage: navigate,
-      ),
-      'touchpad' => RemotePage(
-        key: ValueKey('touch-${m.selected?.id}'),
-        model: m,
-        onPage: navigate,
-        initialMode: 'touchpad',
+        mode: remoteMode,
       ),
       'keyboard' => KeyboardPage(m, key: keyboardKey),
       'apps' => CatalogPage(m, key: const ValueKey('apps'), apps: true),
@@ -312,7 +326,17 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
                         : () => navigate('devices'),
                   ),
                   PopupMenuButton<String>(
+                    key: const ValueKey('tv-menu'),
+                    onOpened: () => menuDevice = m.selected?.id,
                     onSelected: (value) async {
+                      if ([
+                        'remote',
+                        'touchpad',
+                        'directTouch',
+                      ].contains(value)) {
+                        await selectRemoteMode(value);
+                        return;
+                      }
                       if (value == 'connect') await m.connect(m.selected!);
                       if (value == 'disconnect') await m.disconnect();
                       if (value == 'pairRemote') {
@@ -323,6 +347,15 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
                       }
                     },
                     itemBuilder: (_) => [
+                      if (current == 'remote') ...[
+                        for (final id in ['remote', 'touchpad', 'directTouch'])
+                          CheckedPopupMenuItem(
+                            value: id,
+                            checked: remoteMode == id,
+                            child: Text(t(id)),
+                          ),
+                        const PopupMenuDivider(),
+                      ],
                       for (final id in [
                         'connect',
                         'disconnect',
