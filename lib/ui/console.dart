@@ -310,19 +310,26 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
         onDrawerChanged: (value) => setState(() => drawerOpen = value),
         appBar: AppBar(
           toolbarHeight: compactKeyboard ? 48 : null,
+          leading: current == 'keyboard'
+              ? IconButton(
+                  tooltip: t('closeKeyboard'),
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: closeKeyboard,
+                )
+              : null,
           title: Text(current == 'devices' ? t('appTitle') : m.selected!.name),
           actions: current == 'devices'
               ? null
               : [
                   IconButton(
-                    tooltip: t(
-                      current == 'keyboard' ? 'closeKeyboard' : 'devices',
-                    ),
+                    tooltip: current == 'keyboard'
+                        ? MaterialLocalizations.of(context).openAppDrawerTooltip
+                        : t('devices'),
                     icon: Icon(
-                      current == 'keyboard' ? Icons.close : Icons.devices,
+                      current == 'keyboard' ? Icons.menu : Icons.devices,
                     ),
                     onPressed: current == 'keyboard'
-                        ? closeKeyboard
+                        ? () => scaffoldKey.currentState?.openDrawer()
                         : () => navigate('devices'),
                   ),
                   PopupMenuButton<String>(
