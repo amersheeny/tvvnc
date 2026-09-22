@@ -877,249 +877,258 @@ class KeyboardPageState extends State<KeyboardPage>
         );
         final customAction = live && editorSettings.hasCustomAction;
         final customLabel = editorSettings.actionLabel?.trim();
-        final editor = ListView(
-          key: editorKey,
-          shrinkWrap: short,
-          physics: short ? const NeverScrollableScrollPhysics() : null,
-          padding: EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: wide && constraints.maxHeight < 192 ? 4 : 12,
-          ),
-          children: [
-            MeasuredSize(
-              key: essentialKey,
-              onChange: (size) {
-                if (mounted && size.height != essentialHeight) {
-                  setState(() => essentialHeight = size.height);
-                }
-              },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    // Android's current text-input channel does not implement
-                    // updateConfig. A security-mode change needs a new client,
-                    // not merely obscured Flutter pixels over the old IME flags.
-                    key: ValueKey((
-                      private,
-                      sensitive,
-                      live || pausedEdit,
-                      editorSettings.inputType,
-                      editorSettings.imeOptions,
-                      editorSettings.hasCustomAction,
-                    )),
-                    controller: text,
-                    focusNode: configuredInputFocus(),
-                    onTap: () {
-                      keyboardDismissed = false;
-                      entryUntouched = false;
-                    },
-                    readOnly: finishing,
-                    obscureText: private,
-                    enableSuggestions: !sensitive && !live && !pausedEdit,
-                    autocorrect: !sensitive && !live && !pausedEdit,
-                    enableIMEPersonalizedLearning:
-                        !sensitive && !live && !pausedEdit,
-                    minLines: 1,
-                    maxLines: private || !editorSettings.multiline ? 1 : 3,
-                    keyboardType: editorSettings.keyboardType(
-                      hidden: private,
-                      sensitive: sensitive,
-                    ),
-                    textInputAction: editorSettings.action(hidden: private),
-                    onSubmitted: (_) => submitFromKeyboard(),
-                    onEditingComplete: () {},
-                    decoration: InputDecoration(
-                      hintText: t('textHint'),
-                      suffixIcon: IconButton(
-                        onPressed: finishing ? null : toggleVisibility,
-                        tooltip: t(private ? 'showText' : 'hideText'),
-                        icon: Icon(
-                          private
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
+        final editor = TextFieldTapRegion(
+          child: ListView(
+            key: editorKey,
+            shrinkWrap: short,
+            physics: short ? const NeverScrollableScrollPhysics() : null,
+            padding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: wide && constraints.maxHeight < 192 ? 4 : 12,
+            ),
+            children: [
+              MeasuredSize(
+                key: essentialKey,
+                onChange: (size) {
+                  if (mounted && size.height != essentialHeight) {
+                    setState(() => essentialHeight = size.height);
+                  }
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Semantics(
+                      container: true,
+                      child: TextField(
+                        // Android's current text-input channel does not implement
+                        // updateConfig. A security-mode change needs a new client,
+                        // not merely obscured Flutter pixels over the old IME flags.
+                        key: ValueKey((
+                          private,
+                          sensitive,
+                          live || pausedEdit,
+                          editorSettings.inputType,
+                          editorSettings.imeOptions,
+                          editorSettings.hasCustomAction,
+                        )),
+                        controller: text,
+                        focusNode: configuredInputFocus(),
+                        onTap: () {
+                          keyboardDismissed = false;
+                          entryUntouched = false;
+                        },
+                        readOnly: finishing,
+                        obscureText: private,
+                        enableSuggestions: !sensitive && !live && !pausedEdit,
+                        autocorrect: !sensitive && !live && !pausedEdit,
+                        enableIMEPersonalizedLearning:
+                            !sensitive && !live && !pausedEdit,
+                        minLines: 1,
+                        maxLines: private || !editorSettings.multiline ? 1 : 3,
+                        keyboardType: editorSettings.keyboardType(
+                          hidden: private,
+                          sensitive: sensitive,
                         ),
-                      ),
-                    ),
-                    onChanged: (_) => schedule(),
-                  ),
-                  if (pausedEdit || draftConflict) ...[
-                    Text(
-                      t(
-                        offeredEditor == null
-                            ? 'pausedEditingWaiting'
-                            : 'pausedEditingBody',
+                        textInputAction: editorSettings.action(hidden: private),
+                        onSubmitted: (_) => submitFromKeyboard(),
+                        onEditingComplete: () {},
+                        decoration: InputDecoration(
+                          hintText: t('textHint'),
+                          suffixIcon: IconButton(
+                            onPressed: finishing ? null : toggleVisibility,
+                            tooltip: t(private ? 'showText' : 'hideText'),
+                            icon: Icon(
+                              private
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                          ),
+                        ),
+                        onChanged: (_) => schedule(),
                       ),
                     ),
-                    if (offeredEditor != null)
-                      Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: TextButton(
-                          onPressed: finishing || sending
-                              ? null
-                              : loadReportedText,
-                          child: Text(t('loadTvText')),
+                    if (pausedEdit || draftConflict) ...[
+                      Text(
+                        t(
+                          offeredEditor == null
+                              ? 'pausedEditingWaiting'
+                              : 'pausedEditingBody',
                         ),
                       ),
-                  ],
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      TextButton.icon(
-                        onPressed: finishing
-                            ? null
-                            : () async {
-                                entryUntouched = false;
-                                final contextAtPaste = draftContext;
-                                final targetAtPaste = origin;
-                                final modeAtPaste = modeEpoch;
-                                final bufferAtPaste = bufferRevision;
-                                final clipboard = await Clipboard.getData(
-                                  Clipboard.kTextPlain,
-                                );
-                                if (!mounted ||
-                                    clipboard?.text == null ||
-                                    modeEpoch != modeAtPaste ||
-                                    bufferRevision != bufferAtPaste ||
-                                    draftContext != contextAtPaste ||
-                                    origin?.deviceId !=
-                                        targetAtPaste?.deviceId ||
-                                    origin?.sessionId !=
-                                        targetAtPaste?.sessionId) {
-                                  return;
-                                }
-                                text.value = TextEditingValue(
-                                  text: clipboard!.text!,
-                                  selection: TextSelection.collapsed(
-                                    offset: clipboard.text!.length,
-                                  ),
-                                );
-                                schedule();
-                              },
-                        icon: const Icon(Icons.content_paste),
-                        label: Text(t('paste')),
-                      ),
-                      FilledButton.icon(
-                        onPressed:
-                            (!customAction && sending) ||
-                                finishing ||
-                                (pausedEdit && offeredEditor == null)
-                            ? null
-                            : customAction
-                            ? () => submitFromKeyboard(customAction: true)
-                            : sendFromButton,
-                        icon: const Icon(Icons.send),
-                        label: Text(
-                          customAction && customLabel?.isNotEmpty == true
-                              ? customLabel!
-                              : t('send'),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                      if (offeredEditor != null)
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: TextButton(
+                            onPressed: finishing || sending
+                                ? null
+                                : loadReportedText,
+                            child: Text(t('loadTvText')),
+                          ),
                         ),
-                      ),
-                      TextButton(
-                        onPressed: finishing
-                            ? null
-                            : () {
-                                text.clear();
-                                schedule();
-                              },
-                        child: Text(t('clear')),
-                      ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton.icon(
+                          onPressed: finishing
+                              ? null
+                              : () async {
+                                  entryUntouched = false;
+                                  final contextAtPaste = draftContext;
+                                  final targetAtPaste = origin;
+                                  final modeAtPaste = modeEpoch;
+                                  final bufferAtPaste = bufferRevision;
+                                  final clipboard = await Clipboard.getData(
+                                    Clipboard.kTextPlain,
+                                  );
+                                  if (!mounted ||
+                                      clipboard?.text == null ||
+                                      modeEpoch != modeAtPaste ||
+                                      bufferRevision != bufferAtPaste ||
+                                      draftContext != contextAtPaste ||
+                                      origin?.deviceId !=
+                                          targetAtPaste?.deviceId ||
+                                      origin?.sessionId !=
+                                          targetAtPaste?.sessionId) {
+                                    return;
+                                  }
+                                  text.value = TextEditingValue(
+                                    text: clipboard!.text!,
+                                    selection: TextSelection.collapsed(
+                                      offset: clipboard.text!.length,
+                                    ),
+                                  );
+                                  schedule();
+                                },
+                          icon: const Icon(Icons.content_paste),
+                          label: Text(t('paste')),
+                        ),
+                        FilledButton.icon(
+                          onPressed:
+                              (!customAction && sending) ||
+                                  finishing ||
+                                  (pausedEdit && offeredEditor == null)
+                              ? null
+                              : customAction
+                              ? () => submitFromKeyboard(customAction: true)
+                              : sendFromButton,
+                          icon: const Icon(Icons.send),
+                          label: Text(
+                            customAction && customLabel?.isNotEmpty == true
+                                ? customLabel!
+                                : t('send'),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: finishing
+                              ? null
+                              : () {
+                                  text.clear();
+                                  schedule();
+                                },
+                          child: Text(t('clear')),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Divider(height: 24),
-            Semantics(
-              header: true,
-              child: Text(
-                t(live || pausedEdit ? 'editingKeys' : 'tvEditingKeys'),
+              const Divider(height: 24),
+              Semantics(
+                header: true,
+                child: Text(
+                  t(live || pausedEdit ? 'editingKeys' : 'tvEditingKeys'),
+                ),
               ),
-            ),
-            if (!pausedEdit)
-              Text(t(live ? 'liveEditingBody' : 'tvEditingBody')),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                if (live || pausedEdit) ...[
-                  localEditingButton(
-                    67,
-                    t('backspace'),
-                    Icons.backspace_outlined,
-                  ),
-                  localEditingButton(
-                    112,
-                    t('delete'),
-                    Icons.keyboard_alt_outlined,
-                  ),
-                  localEditingButton(21, t('cursorLeft'), Icons.arrow_back),
-                  localEditingButton(22, t('cursorRight'), Icons.arrow_forward),
-                  RemoteButton(
-                    model: widget.model,
-                    code: 66,
-                    label: t('tvEnter'),
-                    icon: Icons.keyboard_return,
-                    compact: true,
-                    beforePress: prepareEnterOnTv,
-                    onDispatch: enteringOnTv,
-                  ),
-                ] else
-                  for (final key in [
-                    ('tvBackspace', 67, Icons.backspace_outlined),
-                    ('tvDelete', 112, Icons.keyboard_alt_outlined),
-                    ('tvCursorLeft', 21, Icons.arrow_back),
-                    ('tvCursorRight', 22, Icons.arrow_forward),
-                    ('tvEnter', 66, Icons.keyboard_return),
-                  ])
+              if (!pausedEdit)
+                Text(t(live ? 'liveEditingBody' : 'tvEditingBody')),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (live || pausedEdit) ...[
+                    localEditingButton(
+                      67,
+                      t('backspace'),
+                      Icons.backspace_outlined,
+                    ),
+                    localEditingButton(
+                      112,
+                      t('delete'),
+                      Icons.keyboard_alt_outlined,
+                    ),
+                    localEditingButton(21, t('cursorLeft'), Icons.arrow_back),
+                    localEditingButton(
+                      22,
+                      t('cursorRight'),
+                      Icons.arrow_forward,
+                    ),
                     RemoteButton(
                       model: widget.model,
-                      code: key.$2,
-                      label: t(key.$1),
-                      icon: key.$3,
+                      code: 66,
+                      label: t('tvEnter'),
+                      icon: Icons.keyboard_return,
                       compact: true,
+                      beforePress: prepareEnterOnTv,
+                      onDispatch: enteringOnTv,
                     ),
-              ],
-            ),
-            if (sensitive)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(t('privateDraft')),
-              ),
-            if (!sensitive)
-              ExpansionTile(
-                title: Text(t('vnc')),
-                children: [
-                  Text(t('tvClipboardBody')),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      TextButton(
-                        onPressed: () => widget.model.command(
-                          CommandKind.paste,
-                          origin: origin,
-                          value: text.text,
-                          privateText: sensitive,
-                        ),
-                        child: Text(t('tvClipboard')),
+                  ] else
+                    for (final key in [
+                      ('tvBackspace', 67, Icons.backspace_outlined),
+                      ('tvDelete', 112, Icons.keyboard_alt_outlined),
+                      ('tvCursorLeft', 21, Icons.arrow_back),
+                      ('tvCursorRight', 22, Icons.arrow_forward),
+                      ('tvEnter', 66, Icons.keyboard_return),
+                    ])
+                      RemoteButton(
+                        model: widget.model,
+                        code: key.$2,
+                        label: t(key.$1),
+                        icon: key.$3,
+                        compact: true,
                       ),
-                      TextButton(
-                        onPressed: () => widget.model.command(
-                          CommandKind.key,
-                          origin: origin,
-                          code: 279,
-                        ),
-                        child: Text(t('sendClipboardPaste')),
-                      ),
-                    ],
-                  ),
                 ],
               ),
-          ],
+              if (sensitive)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(t('privateDraft')),
+                ),
+              if (!sensitive)
+                ExpansionTile(
+                  title: Text(t('vnc')),
+                  children: [
+                    Text(t('tvClipboardBody')),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton(
+                          onPressed: () => widget.model.command(
+                            CommandKind.paste,
+                            origin: origin,
+                            value: text.text,
+                            privateText: sensitive,
+                          ),
+                          child: Text(t('tvClipboard')),
+                        ),
+                        TextButton(
+                          onPressed: () => widget.model.command(
+                            CommandKind.key,
+                            origin: origin,
+                            code: 279,
+                          ),
+                          child: Text(t('sendClipboardPaste')),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+            ],
+          ),
         );
         if (wide) {
           return Row(
