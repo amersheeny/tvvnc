@@ -17,6 +17,26 @@ import 'widget_safety_test.dart' show SavedApi, profile, snapshot;
 class NavigationApi extends SavedApi {
   final connections = <String>[];
   final disconnections = <String>[];
+  final pairedCodes = <String>[];
+  final sonyPins = <String>[];
+  @override
+  Future<void> submitPairingCode(
+    String deviceId,
+    int sessionId,
+    String code,
+  ) async {
+    pairedCodes.add(code);
+  }
+
+  @override
+  Future<void> cancelPairing(String deviceId, int sessionId) async {}
+  @override
+  Future<bool> registerSony(String deviceId, int sessionId, String? pin) async {
+    if (pin == null) return false;
+    sonyPins.add(pin);
+    return true;
+  }
+
   @override
   Future<bool> requestNetworkPermission() async => true;
   @override
@@ -90,6 +110,115 @@ bool canPop(WidgetTester tester) =>
     Navigator.of(tester.element(find.byType(Console))).canPop();
 
 void main() {
+  testWidgets(
+    'late pairing completion cannot pop the underlying Keyboard page',
+    (tester) async {
+      final (model, api) = await mount(tester);
+      await chooseTv(tester, 'TV A');
+      await destination(tester, 'Keyboard');
+      model.snapshotChanged(snapshot('TV A', 1)..pairingState = 'waiting');
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextField),
+        ),
+        '123ABC',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Pair'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      model.snapshotChanged(snapshot('TV A', 1)..pairingState = 'paired');
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(api.pairedCodes, ['123ABC']);
+      expect(find.byType(KeyboardPage), findsOneWidget);
+    },
+  );
+  testWidgets('deep-link input survives the closing route transition', (
+    tester,
+  ) async {
+    final (_, api) = await mount(tester);
+    await chooseTv(tester, 'TV A');
+    await destination(tester, 'Apps');
+    await tester.tap(find.text('Open app link'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextField),
+      ),
+      'https://example.com/fixture',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Launch'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(api.commands.single.value, 'https://example.com/fixture');
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+  for (final timedOut in [false, true]) {
+    testWidgets('pairing cancellation closes safely: timeout=$timedOut', (
+      tester,
+    ) async {
+      final (model, api) = await mount(tester);
+      await chooseTv(tester, 'TV A');
+      model.snapshotChanged(snapshot('TV A', 1)..pairingState = 'waiting');
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '123');
+      if (timedOut) {
+        model.snapshotChanged(snapshot('TV A', 1)..pairingState = 'failed');
+      } else {
+        await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      }
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(api.pairedCodes, isEmpty);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+  }
+  testWidgets('pairing input survives the closing route transition', (
+    tester,
+  ) async {
+    final (model, api) = await mount(tester);
+    await chooseTv(tester, 'TV A');
+    model.snapshotChanged(snapshot('TV A', 1)..pairingState = 'waiting');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '123ABC');
+    await tester.tap(find.widgetWithText(FilledButton, 'Pair'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(api.pairedCodes, ['123ABC']);
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+  testWidgets('Sony PIN input survives the closing route transition', (
+    tester,
+  ) async {
+    final (_, api) = await mount(tester);
+    await chooseTv(tester, 'TV A');
+    await destination(tester, 'Settings');
+    await tester.tap(find.text('Register Sony controls'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.widgetWithText(FilledButton, 'Register Sony controls'),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '1234');
+    await tester.tap(
+      find.widgetWithText(FilledButton, 'Register Sony controls'),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(api.sonyPins, ['1234']);
+    expect(find.byType(AlertDialog), findsNothing);
+  });
   testWidgets('drawer Back does not leave Keyboard while an edit is in flight', (
     tester,
   ) async {

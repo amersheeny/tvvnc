@@ -73,7 +73,9 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
     if (dialog != null && widget.model.state?.pairingState != 'waiting') {
       pairingContext = null;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (dialog.mounted) Navigator.of(dialog).maybePop();
+        if (dialog.mounted && ModalRoute.of(dialog)?.isCurrent == true) {
+          Navigator.of(dialog).maybePop();
+        }
       });
     }
     if (widget.model.messageId != seenMessage) {
@@ -104,7 +106,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
       showingPair = false;
       return;
     }
-    final code = TextEditingController();
+    var code = '';
     final value = await showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -121,7 +123,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
               Text(t('pairingWaiting')),
               const SizedBox(height: 16),
               TextField(
-                controller: code,
+                onChanged: (value) => code = value,
                 autofocus: true,
                 maxLength: 6,
                 textCapitalization: TextCapitalization.characters,
@@ -142,7 +144,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
             ),
             FilledButton(
               onPressed: () {
-                if (code.text.length == 6) Navigator.pop(context, code.text);
+                if (code.length == 6) Navigator.pop(context, code);
               },
               child: Text(t('pair')),
             ),
@@ -150,8 +152,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
         );
       },
     );
-    code.clear();
-    code.dispose();
+    code = '';
     pairingContext = null;
     if (value == null &&
         widget.model.target?.sessionId == target.sessionId &&
@@ -493,7 +494,7 @@ class SettingsPage extends StatelessWidget {
       model.report('connected');
       return;
     }
-    final code = TextEditingController();
+    var code = '';
     final pin = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -506,7 +507,7 @@ class SettingsPage extends StatelessWidget {
             Text(t('sonyPinWaiting')),
             const SizedBox(height: 16),
             TextField(
-              controller: code,
+              onChanged: (value) => code = value,
               keyboardType: TextInputType.number,
               obscureText: true,
               autocorrect: false,
@@ -526,14 +527,13 @@ class SettingsPage extends StatelessWidget {
             child: Text(t('cancel')),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, code.text),
+            onPressed: () => Navigator.pop(context, code),
             child: Text(t('registerSony')),
           ),
         ],
       ),
     );
-    code.clear();
-    code.dispose();
+    code = '';
     if (pin != null) {
       await model.guard(() async {
         await model.api.registerSony(target.deviceId, target.sessionId, pin);

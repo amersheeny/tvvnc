@@ -22,13 +22,13 @@ class _CatalogPageState extends State<CatalogPage> {
   String filter = 'all';
   Future<void> openLink() async {
     final target = widget.model.target;
-    final input = TextEditingController();
+    var input = '';
     final value = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(t('openLink')),
         content: TextField(
-          controller: input,
+          onChanged: (value) => input = value,
           decoration: InputDecoration(labelText: t('appLink')),
           autocorrect: false,
         ),
@@ -38,13 +38,13 @@ class _CatalogPageState extends State<CatalogPage> {
             child: Text(t('cancel')),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, input.text),
+            onPressed: () => Navigator.pop(context, input),
             child: Text(t('launch')),
           ),
         ],
       ),
     );
-    input.dispose();
+    input = '';
     if (value != null && target != null) {
       await widget.model.command(CommandKind.app, origin: target, value: value);
     }
