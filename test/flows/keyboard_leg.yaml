@@ -1,7 +1,7 @@
 appId: com.asheeny.tvvnc
 ---
 - tapOn: "(?s)Keyboard.*"
-- assertVisible: "Compose"
+- assertVisible: "Hide text"
 - takeScreenshot: keyboard
 - inputText: "Local phrase 123"
 - tapOn: "Send"

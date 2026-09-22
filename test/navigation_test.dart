@@ -158,7 +158,7 @@ void main() {
       final (model, _) = await mount(tester);
       await chooseTv(tester, 'TV A');
       await destination(tester, 'Keyboard');
-      await tester.tap(find.text('Private text'));
+      await tester.tap(find.byTooltip('Hide text'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byType(TextField),

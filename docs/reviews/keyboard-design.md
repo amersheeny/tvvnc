@@ -6,25 +6,37 @@ Preview resizing follows keyboard implementation and validation.
 
 ## State and text ownership
 
-- A present native editor, including an empty one, opens in Live edit. Prefill
+- A present native editor, including an empty one, binds automatically. Prefill
   copies text and clamped UTF-16 selection without sending a command.
-- Compose has a separate ordinary draft. A late editor may take over an
+- On 2026-09-22 the user explicitly removed the Compose/Live edit choices.
+  The ordinary fallback bar still has its separate phone draft. A late editor may take over an
   untouched entry, including a briefly displayed saved draft. Its original
-  cache key is retained across page recreation; Compose returns to that draft
+  cache key is retained across page recreation; fallback entry returns to that draft
   without overwriting another application's saved draft. A field tap, later
-  caret movement, typing, Paste/Send beginning, private mode or explicit mode
-  choice disarms automatic adoption. Prefill itself sends nothing.
+  caret movement, typing or Paste/Send beginning disarms automatic adoption.
+  Masking an empty untouched field alone does not prevent prefill. Prefill sends nothing.
+  Saved fallback drafts are restored on entry/re-entry and on a change to a
+  context with a saved draft and no reported native field. Native text takes
+  priority on pristine entry; there is no manual draft or transport selector.
 - A first session snapshot may arrive after Keyboard opens, with or without
   the editor. Discovery of that first target must not erase phone typing.
   Genuine target/session changes retain the existing privacy/context rules.
 - Clean Live follows field/counter refreshes. A dirty or composing old field
   pauses and retains its text on this page without caching or replaying it.
-- **Selecting Live edit while paused replaces the retained text with TV text.**
-  This is deliberate reload, not lossless recovery. The warning says so. Both
-  mode chips are unselected while paused, and Send is disabled.
+- **Load TV text replaces a protected local buffer with the last reported TV text.**
+  It is an exceptional recovery action, never a normal-operation mode choice.
+  Its adjacent warning explains the replacement. A late-arriving editor never
+  automatically sends a phone-only draft; explicit Send retains insertion at
+  the TV cursor. An ordinary paused native edit can be sent as a replacement
+  only after confirmation tied to the captured target, revision and value.
+  Missing/just-submitted fields remain unwritable until eligible data arrives.
 - Imported Live/paused buffers never enter saved drafts or IME learning. Private
   masking and clearing survive context changes, backgrounding, and disposal.
 - Older same-revision echoes cannot replace local edits or move the phone caret.
+- Ordinary unsent/ambiguous native edits survive backgrounding and same-TV
+  reconnection as paused buffers, never cached or replayed. Clean native mirrors
+  follow reported state on resume. Sensitive buffers still clear. Mask/reveal
+  preserves pending-send ownership; only pending clipboard reads are invalidated.
 - A matching native counter update retains an already received field snapshot.
   Known counters for a different field cannot be used to send the current edit.
   That refusal retains the local buffer and shows an accessible persistent
@@ -43,6 +55,9 @@ Preview resizing follows keyboard implementation and validation.
   the installed Flutter focus_manager.dart and editable_text.dart sources.
 - Actual IME dismissal is tracked from visible-to-hidden window insets, so
   updates do not reopen a dismissed keyboard. No raw text-input channel call.
+- The phone field has a 48 dp Hide text/Show text eye control rather than a
+  privacy chip. Revealing does not remove sticky cache/learning protections;
+  the clearing helper remains visible for the protected buffer.
 - Leave Keyboard replaces Your TVs in the shared appbar only on this page. The
   drawer retains Your TVs. Exit returns to the captured previous app page, never
   emits TV Back, and never sends from deactivate/dispose.
@@ -63,8 +78,8 @@ Preview resizing follows keyboard implementation and validation.
   backgrounding, context change, explicit exit and dispose all stop it. It is
   not the native TV-generated key-repeat mechanism.
 - Enter on TV flushes before sending key66, then visibly pauses to avoid replay
-  into a submitted or replaced field. Compose retains direct TV editing keys.
-- Exact Compose labels supplied back to the independent copy reviewer:
+  into a submitted or replaced field. The fallback bar retains direct TV editing keys.
+- Exact fallback labels supplied back to the independent copy reviewer:
   TV editing keys; These keys act on the TV, not the draft above.; Backspace on TV;
   Delete on TV; Move cursor left on TV; Move cursor right on TV; Enter on TV.
   Copy records carry the review session and literal verdicts, not self-approval.
@@ -77,4 +92,5 @@ preserving credentials and real TV non-sensitive text prefill/edit confirmation.
 Fixture tests do not establish what this Sony reports. No TV-sensitive text or
 pairing secrets in captures, logs or diagnostic reports. The draggable viewing
 pane must subsequently be tested in Remote and Keyboard, with IME and orientation
-changes, without affecting TV commands or discarding manual zoom.
+changes, without affecting TV commands. Deliberate pane/window resizing refits;
+IME-only resizing preserves manual zoom, per the 2026-09-22 user revision.

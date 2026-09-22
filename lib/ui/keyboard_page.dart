@@ -44,6 +44,7 @@ class KeyboardPageState extends State<KeyboardPage>
   bool get sensitive => private || sensitiveDraft;
   bool sending = false;
   bool pendingSync = false;
+  bool foreground = true;
   TvTarget? origin;
   DraftContext? draftContext;
   DraftContext? composeDraftContext;
@@ -78,6 +79,17 @@ class KeyboardPageState extends State<KeyboardPage>
   }
 
   bool get dirtyLive => (live || pausedEdit) && text.text != lastSubmittedText;
+  bool get draftConflict =>
+      !live &&
+      !pausedEdit &&
+      widget.model.state?.editor != null &&
+      !entryUntouched;
+  EditorInfo? get offeredEditor {
+    final editor = widget.model.state?.editor;
+    return widget.model.target == null || editor?.revision == submittedEditor
+        ? null
+        : editor;
+  }
 
   void bindEditor(EditorInfo editor, {bool preserveCompose = true}) {
     if (preserveCompose) keepCompose();
@@ -86,6 +98,7 @@ class KeyboardPageState extends State<KeyboardPage>
     draftContext = widget.model.draftContext;
     widget.model.keepComposeContext(draftContext, composeDraftContext);
     pendingSync = false;
+    submittedEditor = null;
     revision = editor.revision;
     lastEditorRevision = editor.revision;
     live = true;
@@ -145,7 +158,10 @@ class KeyboardPageState extends State<KeyboardPage>
   }
 
   void keepCompose() {
-    if (!sensitive && !live && !pausedEdit) {
+    if (!sensitive &&
+        !live &&
+        !pausedEdit &&
+        (!entryUntouched || text.text.isNotEmpty)) {
       widget.model.rememberDraft(composeDraftContext, text.value);
       widget.model.keepComposeContext(draftContext, composeDraftContext);
     }
@@ -161,6 +177,13 @@ class KeyboardPageState extends State<KeyboardPage>
   }
 
   void changed() {
+    // Model snapshots keep arriving while the app is hidden. Reconcile them on
+    // resume, without replacing a retained edit with a background disconnect.
+    if (!foreground &&
+        draftContext != null &&
+        widget.model.selected?.id == draftContext!.$1) {
+      return;
+    }
     final next = widget.model.target;
     final editor = widget.model.state?.editor;
     final oldEditorRevision = lastEditorRevision;
@@ -175,6 +198,8 @@ class KeyboardPageState extends State<KeyboardPage>
     final sameTarget =
         next?.deviceId == origin?.deviceId &&
         next?.sessionId == origin?.sessionId;
+    final sameDevice =
+        draftContext != null && widget.model.selected?.id == draftContext!.$1;
     final initialTargetAppeared =
         origin == null && next != null && draftContext?.$1 == next.deviceId;
     if (sameTarget &&
@@ -192,8 +217,11 @@ class KeyboardPageState extends State<KeyboardPage>
         editor != null &&
         !live &&
         !pausedEdit &&
-        (!sensitive || initialTargetAppeared)) {
-      if (followEditor && entryUntouched && !sensitive && !composing) {
+        (!sensitive || text.text.isEmpty || initialTargetAppeared)) {
+      if (followEditor &&
+          entryUntouched &&
+          (!sensitive || text.text.isEmpty) &&
+          !composing) {
         bindEditor(editor);
       } else {
         origin = next;
@@ -218,7 +246,7 @@ class KeyboardPageState extends State<KeyboardPage>
       keepCompose();
       live = false;
       pausedEdit = false;
-      if (sameTarget && wasLive && !sensitive && !canFollow) {
+      if (sameDevice && wasLive && !sensitive && !canFollow) {
         // Preserve an unfinished ordinary edit on this page, but never send it
         // into the replacement editor or store TV contents as a Compose draft.
         pausedEdit = true;
@@ -291,14 +319,117 @@ class KeyboardPageState extends State<KeyboardPage>
     if (state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
+      foreground = false;
+      final holdEdit =
+          (live || pausedEdit) &&
+          (dirtyLive || sending || composing || pendingSync || pausedEdit);
       invalidateMode();
       keepCompose();
-      live = false;
-      pausedEdit = false;
-      followEditor = false;
-      restoreCompose();
+      if (sensitive) {
+        replaceBuffer(TextEditingValue.empty);
+        live = false;
+        pausedEdit = false;
+        pendingSync = false;
+        followEditor = true;
+        entryUntouched = true;
+      } else if (holdEdit) {
+        live = false;
+        pausedEdit = true;
+        followEditor = false;
+      }
+      if (mounted) setState(() {});
+    } else if (state == AppLifecycleState.resumed) {
+      foreground = true;
+      changed();
+      final editor = offeredEditor;
+      if (!live &&
+          !pausedEdit &&
+          entryUntouched &&
+          text.text.isEmpty &&
+          !composing &&
+          !sending &&
+          !pendingSync &&
+          editor != null) {
+        followEditor = true;
+        bindEditor(editor);
+      }
       if (mounted) setState(() {});
     }
+  }
+
+  void toggleVisibility() {
+    if (finishing) return;
+    if (text.text.isNotEmpty) entryUntouched = false;
+    // Visibility is not a new text operation. Keep the pending send's owner,
+    // but invalidate any clipboard read started under a different privacy state.
+    bufferRevision++;
+    editingRepeat?.cancel();
+    setState(() {
+      private = !private;
+      if (private) {
+        sensitiveDraft = true;
+        widget.model.clearDraft(composeDraftContext);
+      } else if (text.text.isEmpty) {
+        sensitiveDraft = false;
+      }
+    });
+    keepCompose();
+  }
+
+  void loadReportedText() {
+    if (finishing || sending) return;
+    final editor = offeredEditor;
+    if (editor == null) return;
+    entryUntouched = false;
+    followEditor = true;
+    bindEditor(editor);
+    setState(() {});
+  }
+
+  Future<bool> sendFromButton() async {
+    if (finishing || sending || !foreground) return false;
+    if (!pausedEdit) return send(replace: live);
+    final target = widget.model.target;
+    final editor = offeredEditor;
+    if (target == null || editor == null) return false;
+    final fieldRevision = editor.revision;
+    final reportedText = editor.text;
+    final value = text.text;
+    final epoch = modeEpoch;
+    setState(() => finishing = true);
+    editingRepeat?.cancel();
+    final accepted = await confirm(
+      context,
+      'replaceTvFieldTitle',
+      'replaceTvFieldBody',
+      'replaceTvFieldAction',
+    );
+    if (!mounted) return false;
+    setState(() => finishing = false);
+    if (!accepted) return false;
+    if (!foreground ||
+        epoch != modeEpoch ||
+        value != text.text ||
+        widget.model.target?.deviceId != target.deviceId ||
+        widget.model.target?.sessionId != target.sessionId ||
+        offeredEditor?.revision != fieldRevision) {
+      widget.model.report('notSent');
+      return false;
+    }
+    // This explicit confirmation binds the retained text to this exact field.
+    // Do not use bindEditor: that would replace the person's buffer first.
+    invalidateMode();
+    origin = target;
+    draftContext = widget.model.draftContext;
+    revision = fieldRevision;
+    lastEditorRevision = fieldRevision;
+    lastSubmittedText = reportedText;
+    submittedEditor = null;
+    live = true;
+    pausedEdit = false;
+    editedLive = true;
+    followEditor = true;
+    return send(replace: true);
   }
 
   @override
@@ -325,7 +456,7 @@ class KeyboardPageState extends State<KeyboardPage>
   Future<bool> sendValue({bool replace = false}) async {
     entryUntouched = false;
     final captured = origin;
-    if (captured == null || pausedEdit) return false;
+    if (captured == null || pausedEdit || !foreground) return false;
     final epoch = modeEpoch;
     final request = ++sendSequence;
     activeSend = request;
@@ -540,13 +671,16 @@ class KeyboardPageState extends State<KeyboardPage>
     if (live) editedLive = true;
     keepCompose();
     if (!repeat) debounce?.cancel();
-    if (live &&
+    if (foreground &&
+        live &&
         !pendingSync &&
         !finishing &&
         text.value.composing.isCollapsed &&
         (!repeat || debounce?.isActive != true)) {
       debounce = Timer(const Duration(milliseconds: 180), () {
-        if (dirtyLive) send(replace: true);
+        if (foreground && live && !pausedEdit && !pendingSync && dirtyLive) {
+          send(replace: true);
+        }
       });
     }
   }
@@ -597,65 +731,6 @@ class KeyboardPageState extends State<KeyboardPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Wrap(
-                    spacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      ChoiceChip(
-                        label: Text(t('compose')),
-                        selected: !live && !pausedEdit,
-                        onSelected: (_) {
-                          if (finishing) return;
-                          entryUntouched = false;
-                          followEditor = false;
-                          final wasLive = live || pausedEdit;
-                          if (wasLive) invalidateMode();
-                          setState(() {
-                            live = false;
-                            pausedEdit = false;
-                          });
-                          if (wasLive) restoreCompose();
-                        },
-                      ),
-                      ChoiceChip(
-                        label: Text(t('liveEdit')),
-                        selected: live,
-                        onSelected: (_) {
-                          if (live || finishing) return;
-                          entryUntouched = false;
-                          final editor = widget.model.state?.editor;
-                          if (editor == null) {
-                            widget.model.report('noEditor');
-                            return;
-                          }
-                          followEditor = true;
-                          bindEditor(editor);
-                          setState(() {});
-                        },
-                      ),
-                      FilterChip(
-                        label: Text(t('privateText')),
-                        selected: private,
-                        onSelected: (value) {
-                          if (finishing) return;
-                          entryUntouched = false;
-                          invalidateMode();
-                          if (value) {
-                            sensitiveDraft = true;
-                            widget.model.clearDraft(composeDraftContext);
-                          }
-                          setState(() {
-                            private = value;
-                            if (!private && text.text.isEmpty) {
-                              sensitiveDraft = false;
-                            }
-                          });
-                          keepCompose();
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
                   TextField(
                     // Android's current text-input channel does not implement
                     // updateConfig. A security-mode change needs a new client,
@@ -680,10 +755,39 @@ class KeyboardPageState extends State<KeyboardPage>
                         : sensitive
                         ? TextInputType.visiblePassword
                         : TextInputType.multiline,
-                    decoration: InputDecoration(hintText: t('textHint')),
+                    decoration: InputDecoration(
+                      hintText: t('textHint'),
+                      suffixIcon: IconButton(
+                        onPressed: finishing ? null : toggleVisibility,
+                        tooltip: t(private ? 'showText' : 'hideText'),
+                        icon: Icon(
+                          private
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                      ),
+                    ),
                     onChanged: (_) => schedule(),
                   ),
-                  if (pausedEdit) Text(t('pausedEditingBody')),
+                  if (pausedEdit || draftConflict) ...[
+                    Text(
+                      t(
+                        offeredEditor == null
+                            ? 'pausedEditingWaiting'
+                            : 'pausedEditingBody',
+                      ),
+                    ),
+                    if (offeredEditor != null)
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton(
+                          onPressed: finishing || sending
+                              ? null
+                              : loadReportedText,
+                          child: Text(t('loadTvText')),
+                        ),
+                      ),
+                  ],
                   if (pendingSync && !pausedEdit)
                     Semantics(
                       liveRegion: true,
@@ -733,9 +837,12 @@ class KeyboardPageState extends State<KeyboardPage>
                         label: Text(t('paste')),
                       ),
                       FilledButton.icon(
-                        onPressed: sending || finishing || pausedEdit
+                        onPressed:
+                            sending ||
+                                finishing ||
+                                (pausedEdit && offeredEditor == null)
                             ? null
-                            : () => send(replace: live),
+                            : sendFromButton,
                         icon: const Icon(Icons.send),
                         label: Text(t('send')),
                       ),

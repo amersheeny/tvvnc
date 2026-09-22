@@ -6,21 +6,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tv_vnc/bridge/tv_api.g.dart';
 import 'package:tv_vnc/ui/keyboard_page.dart';
 
-import 'widget_safety_test.dart' show RecordingApi, model, snapshot;
+import 'widget_safety_test.dart'
+    show RecordingApi, model, snapshot, composeModel, toggleMask;
 
 void main() {
   testWidgets(
-    'a refused Compose send retains the explanation of TV editing keys',
+    'a refused fallback send retains the explanation of TV editing keys',
     (tester) async {
       final api = RecordingApi()..delayed = Completer<CommandOutcome>();
-      final m = model(api);
+      final m = composeModel(api);
       await tester.pumpWidget(
         MaterialApp(home: Scaffold(body: KeyboardPage(m))),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Compose'));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'Compose fixture');
+      await tester.enterText(find.byType(TextField), 'Fallback fixture');
       await tester.tap(find.text('Send'));
       api.delayed!.complete(
         CommandOutcome(
@@ -76,17 +75,7 @@ void main() {
           tester.widget<TextField>(find.byType(TextField)).controller!.text,
           isEmpty,
         );
-        expect(
-          tester
-              .widget<ChoiceChip>(
-                find.ancestor(
-                  of: find.text('Compose'),
-                  matching: find.byType(ChoiceChip),
-                ),
-              )
-              .selected,
-          isTrue,
-        );
+        expect(find.text('Load TV text'), findsOneWidget);
         if (action == 'send') {
           expect(api.commands.single.value, '');
           api.delayed!.complete(
@@ -128,7 +117,13 @@ void main() {
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
         'TV value',
       );
-      await tester.tap(find.text('Compose'));
+      await tester.pumpWidget(const SizedBox());
+      m.state!
+        ..editor = null
+        ..currentApp = 'test.app';
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: KeyboardPage(m))),
+      );
       await tester.pumpAndSettle();
       expect(
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
@@ -141,13 +136,11 @@ void main() {
         MaterialApp(home: Scaffold(body: KeyboardPage(m))),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Compose'));
-      await tester.pumpAndSettle();
       expect(
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
         'Unassigned draft',
       );
-      await tester.tap(find.text('Private text'));
+      await toggleMask(tester);
       await tester.pump();
       expect(m.draft(('a', null)).text, isEmpty);
       expect(m.draft(('a', 'test.app')).text, 'Other saved draft');
@@ -200,17 +193,7 @@ void main() {
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
         action == 'typing' ? 'Phone typing' : '',
       );
-      expect(
-        tester
-            .widget<ChoiceChip>(
-              find.ancestor(
-                of: find.text('Compose'),
-                matching: find.byType(ChoiceChip),
-              ),
-            )
-            .selected,
-        isTrue,
-      );
+      expect(find.text('Load TV text'), findsOneWidget);
       expect(api.commands, isEmpty);
       // A later deliberate Send uses the now-known target, not the null origin.
       await tester.ensureVisible(find.text('Send'));
@@ -249,7 +232,7 @@ void main() {
         MaterialApp(home: Scaffold(body: KeyboardPage(m))),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Private text'));
+      await toggleMask(tester);
       await tester.enterText(
         find.byType(TextField),
         'Harmless private fixture',
@@ -348,7 +331,13 @@ void main() {
         'Already on TV',
       );
       expect(m.draft(('a', 'test.app')).text, 'Saved compose');
-      await tester.tap(find.text('Compose'));
+      await tester.pumpWidget(const SizedBox());
+      m.state!
+        ..editor = null
+        ..currentApp = 'test.app';
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: KeyboardPage(m))),
+      );
       await tester.pumpAndSettle();
       expect(
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
@@ -382,13 +371,7 @@ void main() {
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
         'Unsent edit',
       );
-      final chip = tester.widget<ChoiceChip>(
-        find.ancestor(
-          of: find.text('Live edit'),
-          matching: find.byType(ChoiceChip),
-        ),
-      );
-      expect(chip.selected, isTrue);
+      expect(find.text('Load TV text'), findsNothing);
       const pending =
           'Your text is not going to the TV. Select Send to try again.';
       expect(find.text(pending), findsOneWidget);

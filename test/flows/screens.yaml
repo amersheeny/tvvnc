@@ -37,7 +37,7 @@ appId: com.asheeny.tvvnc
 - takeScreenshot: touchpad-dark
 - tapOn: "Open navigation menu"
 - tapOn: "(?s)Keyboard.*"
-- tapOn: "Private text"
+- tapOn: "Hide text"
 - inputText: "privacy fixture"
 - takeScreenshot: private-keyboard-dark
 - hideKeyboard

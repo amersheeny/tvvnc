@@ -127,6 +127,13 @@ TvModel composeModel(RecordingApi api) {
   return m;
 }
 
+Future<void> toggleMask(WidgetTester tester) async {
+  final hidden = tester
+      .widget<TextField>(find.byType(TextField).first)
+      .obscureText;
+  await tester.tap(find.byTooltip(hidden ? 'Show text' : 'Hide text'));
+}
+
 void main() {
   testWidgets('late phone paste cannot replace a cleared and retyped buffer', (
     tester,
@@ -139,10 +146,10 @@ void main() {
     );
     final m = composeModel(RecordingApi());
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
-    await tester.tap(find.text('Private text'));
+    await toggleMask(tester);
     await tester.pump();
     await tester.enterText(find.byType(TextField), 'same text');
-    await tester.tap(find.text('Private text'));
+    await toggleMask(tester);
     await tester.pump();
     await tester.tap(find.text('Paste'));
     await tester.tap(find.text('Clear'));
@@ -197,10 +204,10 @@ void main() {
     final m = model(RecordingApi());
     Widget page() => MaterialApp(home: Scaffold(body: KeyboardPage(m)));
     await tester.pumpWidget(page());
-    await tester.tap(find.text('Private text'));
+    await toggleMask(tester);
     await tester.pump();
     await tester.enterText(find.byType(TextField), 'private fixture');
-    await tester.tap(find.text('Private text'));
+    await toggleMask(tester);
     await tester.pump();
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
@@ -227,10 +234,10 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(home: Scaffold(body: KeyboardPage(m))),
       );
-      await tester.tap(find.text('Private text'));
+      await toggleMask(tester);
       await tester.pump();
       await tester.enterText(find.byType(TextField), 'private fixture');
-      await tester.tap(find.text('Private text'));
+      await toggleMask(tester);
       await tester.pump();
       final clients = tester.testTextInput.log
           .where((c) => c.method == 'TextInput.setClient')
@@ -267,11 +274,11 @@ void main() {
     );
     final m = model(RecordingApi());
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
-    await tester.tap(find.text('Private text'));
+    await toggleMask(tester);
     await tester.pump();
     await tester.enterText(find.byType(TextField), 'current private');
     await tester.tap(find.text('Paste'));
-    await tester.tap(find.text('Private text'));
+    await toggleMask(tester);
     await tester.pump();
     clipboard.complete({'text': 'late private clipboard'});
     await tester.pump();
@@ -351,77 +358,89 @@ void main() {
       },
     );
   }
-  testWidgets(
-    'failed live edit stays recoverable and leaves the separate Compose draft intact',
-    (tester) async {
-      final api = RecordingApi()..delayed = Completer<CommandOutcome>();
-      final m = model(api);
-      await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: KeyboardPage(m))),
-      );
-      await tester.tap(find.text('Compose'));
-      await tester.pump();
-      await tester.enterText(find.byType(TextField), 'saved compose');
-      await tester.tap(find.text('Live edit'));
-      await tester.pump();
-      await tester.enterText(find.byType(TextField), 'failed live buffer');
-      await tester.pump(const Duration(milliseconds: 250));
-      api.delayed!.complete(
-        CommandOutcome(delivery: Delivery.rejected, errorCode: 'no_editor'),
-      );
-      await tester.pump();
-      expect(
-        tester.widget<TextField>(find.byType(TextField)).controller!.text,
-        'failed live buffer',
-      );
-      await tester.tap(find.text('Compose'));
-      await tester.pump();
-      expect(
-        tester.widget<TextField>(find.byType(TextField)).controller!.text,
-        'saved compose',
-      );
-      await tester.pumpWidget(const SizedBox());
-      expect(m.draft(('a', 'test.app')).text, 'saved compose');
-      m.dispose();
-    },
-  );
-  testWidgets('switching a composing IME into Live edit preserves Compose', (
+  testWidgets('failed native edit leaves the separate fallback draft intact', (
     tester,
   ) async {
-    final api = RecordingApi();
-    final m = model(api);
-    m.state!.editor!.text = 'TV field';
-    m.state!.editor!.end = 8;
+    final api = RecordingApi()..delayed = Completer<CommandOutcome>();
+    final m = composeModel(api);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
-    await tester.tap(find.text('Compose'));
-    await tester.pumpAndSettle();
-    tester.testTextInput.updateEditingValue(
-      const TextEditingValue(
-        text: 'かな',
-        selection: TextSelection.collapsed(offset: 2),
-        composing: TextRange(start: 0, end: 2),
-      ),
+    await tester.enterText(find.byType(TextField), 'saved compose');
+    m.snapshotChanged(snapshot('a', 1));
+    await tester.pump();
+    await tester.tap(find.text('Load TV text'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField), 'failed live buffer');
+    await tester.pump(const Duration(milliseconds: 250));
+    api.delayed!.complete(
+      CommandOutcome(delivery: Delivery.rejected, errorCode: 'no_editor'),
     );
-    await tester.pump();
-    await tester.tap(find.text('Live edit'));
-    await tester.pump();
-    await tester.tap(find.text('Compose'));
     await tester.pump();
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
-      'かな',
+      'failed live buffer',
     );
-    expect(api.commands, isEmpty);
     await tester.pumpWidget(const SizedBox());
+    m.state!
+      ..editor = null
+      ..currentApp = 'test.app';
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'saved compose',
+    );
+    await tester.pumpWidget(const SizedBox());
+    expect(m.draft(('a', 'test.app')).text, 'saved compose');
     m.dispose();
   });
-  testWidgets('old live failure cannot exit a newly selected editor mode', (
+  testWidgets(
+    'loading a reported field preserves the fallback composing draft',
+    (tester) async {
+      final api = RecordingApi();
+      final m = composeModel(api);
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: KeyboardPage(m))),
+      );
+      await tester.pumpAndSettle();
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'かな',
+          selection: TextSelection.collapsed(offset: 2),
+          composing: TextRange(start: 0, end: 2),
+        ),
+      );
+      await tester.pump();
+      m.snapshotChanged(snapshot('a', 1)..editor!.text = 'TV field');
+      await tester.pump();
+      await tester.tap(find.text('Load TV text'));
+      await tester.pump();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'TV field',
+      );
+      await tester.pumpWidget(const SizedBox());
+      m.state!
+        ..editor = null
+        ..currentApp = 'test.app';
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: KeyboardPage(m))),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'かな',
+      );
+      expect(api.commands, isEmpty);
+      await tester.pumpWidget(const SizedBox());
+      m.dispose();
+    },
+  );
+  testWidgets('old native failure cannot pause a newly loaded field', (
     tester,
   ) async {
     final api = RecordingApi()..delayed = Completer<CommandOutcome>();
     final m = model(api);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
-    await tester.tap(find.text('Live edit'));
     await tester.pump();
     await tester.enterText(find.byType(TextField), 'old edit');
     await tester.pump(const Duration(milliseconds: 250));
@@ -429,19 +448,13 @@ void main() {
       snapshot('a', 1, revision: 2)..editor!.text = 'new editor',
     );
     await tester.pump();
-    await tester.tap(find.text('Live edit'));
+    await tester.tap(find.text('Load TV text'));
     await tester.pump();
     api.delayed!.complete(
       CommandOutcome(delivery: Delivery.rejected, errorCode: 'no_editor'),
     );
     await tester.pump();
-    final liveChip = tester.widget<ChoiceChip>(
-      find.ancestor(
-        of: find.text('Live edit'),
-        matching: find.byType(ChoiceChip),
-      ),
-    );
-    expect(liveChip.selected, isTrue);
+    expect(find.text('Load TV text'), findsNothing);
     expect(m.messageId, 0);
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
@@ -491,7 +504,6 @@ void main() {
     final api = RecordingApi();
     final m = model(api);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
-    await tester.tap(find.text('Live edit'));
     await tester.pump();
     tester.testTextInput.updateEditingValue(
       const TextEditingValue(
@@ -547,7 +559,7 @@ void main() {
     final before = tester.testTextInput.log
         .where((call) => call.method == 'TextInput.setClient')
         .length;
-    await tester.tap(find.text('Private text'));
+    await toggleMask(tester);
     await tester.pumpAndSettle();
     await tester.pump();
     final clients = tester.testTextInput.log
@@ -684,7 +696,7 @@ void main() {
   ) async {
     final m = model(RecordingApi());
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
-    await tester.tap(find.text('Private text'));
+    await toggleMask(tester);
     await tester.pump();
     final editor = tester.widget<EditableText>(find.byType(EditableText));
     expect(editor.obscureText, isTrue);
@@ -972,7 +984,7 @@ void main() {
     final api = RecordingApi();
     final m = model(api);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
-    await tester.tap(find.text('Private text'));
+    await toggleMask(tester);
     await tester.pump();
     await tester.enterText(find.byType(TextField).first, 'fixture-secret');
     m.snapshotChanged(snapshot('a', 1, revision: 2));
@@ -989,7 +1001,6 @@ void main() {
     final api = RecordingApi();
     final m = model(api);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
-    await tester.tap(find.text('Live edit'));
     await tester.pump();
     await tester.enterText(find.byType(TextField).first, 'not the next field');
     m.snapshotChanged(snapshot('a', 1, revision: 2));
@@ -1004,7 +1015,7 @@ void main() {
     final api = RecordingApi();
     final m = model(api);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
-    await tester.tap(find.text('Private text'));
+    await toggleMask(tester);
     await tester.pump();
     await tester.enterText(find.byType(TextField).first, 'fixture-secret');
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);

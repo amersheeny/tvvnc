@@ -6,7 +6,7 @@ appId: com.asheeny.tvvnc
 - tapOn: "(?s)Keyboard.*"
 - takeScreenshot: software-keyboard-before-back
 - back
-- assertVisible: "Compose"
+- assertVisible: "Hide text"
 - takeScreenshot: software-keyboard-dismissed
 - back
 - assertVisible: "Direct touch"

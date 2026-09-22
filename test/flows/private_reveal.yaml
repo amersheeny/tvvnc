@@ -5,9 +5,9 @@ appId: com.asheeny.tvvnc
 - tapOn: "Clear"
 - tapOn: "Type or paste text"
 - inputText: "protected fixture"
-- tapOn: "Private text"
+- tapOn: "Hide text"
 - assertNotVisible: "protected fixture"
-- tapOn: "Private text"
+- tapOn: "Show text"
 - assertVisible: "protected fixture"
 - takeScreenshot: revealed-sensitive-ime
 - hideKeyboard
@@ -16,9 +16,9 @@ appId: com.asheeny.tvvnc
 - tapOn: "Keyboard"
 - assertVisible: "Type or paste text"
 - assertNotVisible: "protected fixture"
-- tapOn: "Private text"
+- tapOn: "Hide text"
 - inputText: "another fixture"
-- tapOn: "Private text"
+- tapOn: "Show text"
 - tapOn: "Clear"
 - inputText: "ordinary again"
 - takeScreenshot: ordinary-ime-restored

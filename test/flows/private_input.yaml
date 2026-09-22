@@ -7,7 +7,7 @@ appId: com.asheeny.tvvnc
     timeout: 30000
 - tapOn: "Keyboard"
 - inputText: "ordinary draft "
-- tapOn: "Private text"
+- tapOn: "Hide text"
 - inputText: "secretprobe"
 - assertNotVisible: "secretprobe"
 - takeScreenshot: private-ime

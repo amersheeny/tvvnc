@@ -5,10 +5,10 @@ appId: com.asheeny.tvvnc
 - tapOn: "${TV_PATTERN}"
 - tapOn: "Open navigation menu"
 - tapOn: "(?s)Keyboard.*"
-- assertVisible: "Compose"
+- assertVisible: "Hide text"
 - tapOn: "Type or paste text"
 - inputText: "navigation fixture"
-- assertVisible: "Compose"
+- assertVisible: "Hide text"
 - assertVisible: "navigation fixture"
 - takeScreenshot: keyboard-before-page-back
 - back
@@ -21,19 +21,19 @@ appId: com.asheeny.tvvnc
 - tapOn: "Open navigation menu"
 - tapOn: "(?s)Keyboard.*"
 - tapOn: "Clear"
-- tapOn: "Private text"
+- tapOn: "Hide text"
 - tapOn: "Type or paste text"
 - inputText: "private navigation fixture"
 - tapOn: "Open navigation menu"
 - tapOn: "(?s)Apps.*"
 - back
-- assertVisible: "Compose"
+- assertVisible: "Hide text"
 - assertVisible: "Type or paste text"
 - assertNotVisible: "private navigation fixture"
 - takeScreenshot: private-draft-not-restored
 - tapOn: "Open navigation menu"
 - back
-- assertVisible: "Compose"
+- assertVisible: "Hide text"
 - takeScreenshot: drawer-dismissed-on-keyboard
 - tapOn: "Open navigation menu"
 - tapOn: "(?s)Settings.*"
@@ -49,7 +49,7 @@ appId: com.asheeny.tvvnc
 - back
 - assertVisible: "Customize remote"
 - back
-- assertVisible: "Compose"
+- assertVisible: "Hide text"
 - back
 - assertVisible: "Direct touch"
 - tapOn: "Full screen"
