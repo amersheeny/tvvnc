@@ -410,7 +410,7 @@ class _RemotePageState extends State<RemotePage> {
       builder: (context, frame, _) => LayoutBuilder(
         builder: (context, box) {
           final wide =
-              box.maxWidth > 760 && box.maxHeight >= 48 && frame.hidden != true;
+              box.maxWidth > 760 && box.maxHeight >= 56 && frame.hidden != true;
           final short = !wide && box.maxHeight < 192;
           final remote = remoteControlsList(shrink: short);
           final preview = ResizableScreen(

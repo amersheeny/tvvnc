@@ -29,11 +29,13 @@ class ScreenViewer extends StatefulWidget {
     this.direct = false,
     this.fullscreen = false,
     this.showToolbar = true,
+    this.toolbarBuilder,
   });
   final TvModel model;
   final bool direct;
   final bool fullscreen;
   final bool showToolbar;
+  final Widget Function(Widget)? toolbarBuilder;
   @override
   State<ScreenViewer> createState() => ScreenViewerState();
 }
@@ -49,6 +51,7 @@ class ScreenViewerState extends State<ScreenViewer> {
   bool settingTransform = false;
   Size transformViewport = Size.zero;
   int geometryEpoch = 0;
+  Size? windowSize;
   Offset? lastPoint;
   int? remotePointer;
   int? remoteGeneration;
@@ -63,6 +66,14 @@ class ScreenViewerState extends State<ScreenViewer> {
   void initState() {
     super.initState();
     transform.addListener(detailChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextWindowSize = MediaQuery.sizeOf(context);
+    if (windowSize != null && windowSize != nextWindowSize) fitMode = true;
+    windowSize = nextWindowSize;
   }
 
   void detailChanged() {
@@ -528,15 +539,22 @@ class ScreenViewerState extends State<ScreenViewer> {
               ),
             ),
           ),
-        if (widget.showToolbar || frame.hidden == true)
-          SizedBox(
-            height: 48,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: controlButtons(frame),
-            ),
-          ),
+        if (widget.showToolbar || frame.hidden == true) viewingToolbar(frame),
       ],
     ),
   );
+
+  Widget viewingToolbar(ScreenInfo frame) {
+    final toolbar = SizedBox(
+      key: const ValueKey('viewer-toolbar'),
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: controlButtons(frame),
+      ),
+    );
+    return frame.hidden == true
+        ? toolbar
+        : widget.toolbarBuilder?.call(toolbar) ?? toolbar;
+  }
 }

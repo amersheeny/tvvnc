@@ -11,11 +11,16 @@ to keyboard/orientation constraints never overwrite the preference. A drag
 begins at the effective height; trying to drag farther at a bound does not erase
 a larger temporarily clamped preference.
 
-The existing per-page viewer defaults are retained, plus the resize band where
-space permits. The band is at least 48 dp and uses labelMedium with normal text
-scaling, allowing wrapping instead of clipping. Its border is foreground paint
-and consumes no layout padding. Text metrics match its actual style, available
-width, scaling, and direction. The measured band is included in the pane budget.
+On 2026-09-22 the user explicitly replaced the labeled band with a thin,
+unlabeled grip above the viewing icons. The grip is 48 × 4 dp inside an 8 dp
+strip. Together with the existing 48 dp toolbar it occupies 56 dp, rather than
+the old 96 dp minimum. No visible label or tooltip is shown.
+
+The vertical resize gesture belongs to the existing toolbar chrome, not an
+overlay over TV pixels. Child icon taps and horizontal scrolling retain their
+own gesture recognizers. The adjustable semantic container preserves individual
+button nodes. At a fixed resize range the vertical recognizer is omitted, so
+whole-page scrolling remains available even below the 56 dp chrome floor.
 
 Keyboard's actual essential editor block is measured after layout via a
 post-frame callback. SizeChangedLayoutNotification only schedules that callback;
@@ -26,25 +31,27 @@ available. Under a 192 dp stacked body, whole-page scrolling prevents overflow.
 
 At widths over 760 dp, the Keyboard uses a 3:2 viewer/editor arrangement, approved
 at pre-design by the product-design reviewer. Remote retains its existing 3:2
-wide arrangement. Both have the handle below the left view and independently
+wide arrangement. Both have the handle above the left viewing toolbar and independently
 scrollable right controls. Shortening the left view leaves empty space below it.
 GlobalKeys preserve the pane, editor list and essential input subtree across
 layout branches, avoiding needless input-client disposal during rotation.
 The preserving key is above the TextField; the field retains its separate
 security-mode ValueKey, so toggling privacy still replaces the native client.
 
-The band uses synchronous text measurement because its height is part of the
-minimum pane allocation in the same frame. Post-frame band measurement can
-temporarily allocate less than the 48 dp viewer toolbar plus the actual wrapped
-band, producing an initial overflow at large scale. Unlike the arbitrary editor
-block, the band contains one known label; width, merged theme/bold style, locale,
-direction and scaler are shared with its Text render. Rendered large-text/RTL
-checks and the foreground-only border cover the correspondence.
+The separator no longer needs text measurement. Both wide layouts require at
+least 56 dp; smaller bodies use the existing whole-page scrolling fallback.
+The compact menu is used only for very short panes whose width cannot fit the
+eight 48 dp controls. A wide pane keeps its full toolbar even at minimum height;
+collapsing it into a menu would not save vertical space.
 
 The viewer keeps all existing geometry-change input release, pointer clearing,
-and frame reset behavior. Fit mode reflows; manual zoom/pan and Actual size keep
-scale and viewing-center anchor during viewport-only changes. Pending geometry
-callbacks are generation-fenced. Fullscreen is independent of pane sizing.
+and frame reset behavior. The user’s new resize policy supersedes sticky zoom:
+an actual handle adjustment or window-size change arms aspect-preserving Fit.
+An adjustment stopped by a bound does not erase a chosen zoom. IME-only changes
+retain manual zoom/pan/Actual size, including the menu hiding and restoring the
+keyboard. Ordinary framebuffer updates never reset a chosen zoom. Pending
+geometry callbacks remain generation-fenced. Fullscreen is independent of pane
+sizing but also refits when its window size changes.
 
 The product review identified a concrete case that revises the earlier plan
 audit's conclusion about external cancellation: when a TV pointer is held and
@@ -57,7 +64,8 @@ this exact held-pointer-at-bound case.
 The handle is a focusable adjustable semantic control with reviewed percentage
 value and increased/decreased values. Up/Down and accessibility actions use at
 least 16 dp, increased to 1% for unusually tall content areas so whole-number
-announcements remain useful. Touch dragging does not request keyboard focus.
+announcements remain useful. Arrow handling is restricted to the adjuster’s
+primary focus, not a child button’s focus. Touch dragging does not request keyboard focus.
 Target, orientation/constraint changes and lifecycle interruption cancel drag
 tracking. Handle events never become TV commands.
 
@@ -67,6 +75,6 @@ The latter approves the percentage template with a whole-number placeholder.
 
 Required proof: full Flutter tests/analyzer, release build, actual headed
 portrait/wide/IME/large-text/dark/hidden-restored/Direct-touch captures, accessible
-resize, zoom/Actual-size preservation, native protocol smoke, and installation
+resize, explicit refitting and IME-only zoom preservation, native protocol smoke, and installation
 on the physical phone without resetting credentials. Fixture rendering is not
 proof of the Sony's reported text or captured content.

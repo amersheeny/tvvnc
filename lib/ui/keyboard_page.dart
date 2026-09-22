@@ -556,7 +556,7 @@ class KeyboardPageState extends State<KeyboardPage>
     valueListenable: widget.model.screen,
     builder: (context, frame, _) => LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth > 760 && constraints.maxHeight >= 48;
+        final wide = constraints.maxWidth > 760 && constraints.maxHeight >= 56;
         final short = !wide && constraints.maxHeight < 192;
         final preview = ResizableScreen(
           key: screenKey,

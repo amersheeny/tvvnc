@@ -93,35 +93,14 @@ class _ResizableScreenState extends State<ResizableScreen>
       return LayoutBuilder(
         builder: (context, box) {
           final colors = Theme.of(context).colorScheme;
-          final style = DefaultTextStyle.of(context).style.merge(
-            Theme.of(context).textTheme.labelMedium!.copyWith(
-              color: colors.onSurfaceVariant,
-              fontWeight: MediaQuery.boldTextOf(context)
-                  ? FontWeight.bold
-                  : null,
-            ),
-          );
-          double measureBand(String caption, double menuWidth) {
-            final label = TextPainter(
-              text: TextSpan(text: caption, style: style),
-              textDirection: Directionality.of(context),
-              textScaler: MediaQuery.textScalerOf(context),
-              locale: Localizations.maybeLocaleOf(context),
-            )..layout(maxWidth: math.max(1, box.maxWidth - 56 - menuWidth));
-            final result = math.max(48.0, label.height + 16);
-            label.dispose();
-            return result;
-          }
-
-          final normalBand = measureBand(t('resizeScreen'), 0);
-          final compact = menuOpen || widget.maximumHeight < normalBand + 72;
-          final caption = t(compact ? 'screenSize' : 'resizeScreen');
-          final band = compact ? measureBand(caption, 48) : normalBand;
-          final requiredMinimum = band + (compact ? 24 : 72);
-          // The controls' reserve is soft; the visible resize band is not. Tiny
-          // pages use their outer scrolling fallback, never an inner clipped band.
+          const band = 8.0;
+          final compact =
+              menuOpen || (widget.maximumHeight < 96 && box.maxWidth < 8 * 48);
+          final requiredMinimum = compact ? 80.0 : 96.0;
+          // 8 dp grip strip + the existing 48 dp toolbar. The gesture target
+          // lives in this chrome, never over interactive television pixels.
           final maximum = math.max(
-            band,
+            56.0,
             math.min(
               widget.availableHeight,
               math.max(widget.maximumHeight, requiredMinimum),
@@ -141,7 +120,10 @@ class _ResizableScreenState extends State<ResizableScreen>
               void resize(double next) {
                 viewerKey.currentState?.cancelPointerInput();
                 final resized = next.clamp(minimum, maximum).toDouble();
-                if (resized != effective) widget.height.value = resized;
+                if (resized != effective) {
+                  viewerKey.currentState?.fitMode = true;
+                  widget.height.value = resized;
+                }
               }
 
               final step = math.max(16.0, widget.availableHeight / 100);
@@ -152,163 +134,165 @@ class _ResizableScreenState extends State<ResizableScreen>
                           .round()
                           .toString(),
               });
-              final handle = Focus(
-                focusNode: handleFocus,
-                onFocusChange: (value) => setState(() => focused = value),
-                onKeyEvent: (_, event) {
-                  final key = event.logicalKey;
-                  if (key != LogicalKeyboardKey.arrowUp &&
-                      key != LogicalKeyboardKey.arrowDown) {
-                    return KeyEventResult.ignored;
-                  }
-                  if (event is KeyDownEvent || event is KeyRepeatEvent) {
-                    resize(
-                      effective +
-                          (key == LogicalKeyboardKey.arrowDown ? step : -step),
-                    );
-                  }
-                  return KeyEventResult.handled;
-                },
-                child: Semantics(
-                  key: const ValueKey('screen-resize-handle'),
-                  slider: true,
-                  label: t('screenSize'),
-                  value: value(effective),
-                  increasedValue: value(
-                    (effective + step).clamp(minimum, maximum),
-                  ),
-                  decreasedValue: value(
-                    (effective - step).clamp(minimum, maximum),
-                  ),
-                  onIncrease: effective < maximum
-                      ? () => resize(effective + step)
-                      : null,
-                  onDecrease: effective > minimum
-                      ? () => resize(effective - step)
-                      : null,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onVerticalDragStart: (event) {
-                      startY = event.globalPosition.dy;
-                      startHeight = effective;
-                    },
-                    onVerticalDragUpdate: (event) {
-                      if (startY != null && startHeight != null) {
-                        resize(
-                          startHeight! + event.globalPosition.dy - startY!,
-                        );
-                      }
-                    },
-                    onVerticalDragEnd: (_) => cancelDrag(),
-                    onVerticalDragCancel: cancelDrag,
-                    child: ExcludeSemantics(
-                      child: Tooltip(
-                        message: t('resizeScreen'),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.drag_handle,
-                                size: 24,
-                                color: colors.onSurfaceVariant,
+              Widget resizeChrome(Widget controls) => Listener(
+                onPointerDown: (_) =>
+                    viewerKey.currentState?.cancelPointerInput(),
+                child: Focus(
+                  focusNode: handleFocus,
+                  onFocusChange: (value) => setState(() => focused = value),
+                  onKeyEvent: (_, event) {
+                    if (!handleFocus.hasPrimaryFocus || minimum == maximum) {
+                      return KeyEventResult.ignored;
+                    }
+                    final key = event.logicalKey;
+                    if (key != LogicalKeyboardKey.arrowUp &&
+                        key != LogicalKeyboardKey.arrowDown) {
+                      return KeyEventResult.ignored;
+                    }
+                    if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                      resize(
+                        effective +
+                            (key == LogicalKeyboardKey.arrowDown
+                                ? step
+                                : -step),
+                      );
+                    }
+                    return KeyEventResult.handled;
+                  },
+                  child: Semantics(
+                    key: const ValueKey('screen-resize-handle'),
+                    container: true,
+                    explicitChildNodes: true,
+                    slider: true,
+                    label: t('screenSize'),
+                    value: value(effective),
+                    increasedValue: value(
+                      (effective + step).clamp(minimum, maximum),
+                    ),
+                    decreasedValue: value(
+                      (effective - step).clamp(minimum, maximum),
+                    ),
+                    onIncrease: effective < maximum
+                        ? () => resize(effective + step)
+                        : null,
+                    onDecrease: effective > minimum
+                        ? () => resize(effective - step)
+                        : null,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      excludeFromSemantics: true,
+                      onVerticalDragStart: minimum == maximum
+                          ? null
+                          : (event) {
+                              startY = event.globalPosition.dy;
+                              startHeight = effective;
+                            },
+                      onVerticalDragUpdate: minimum == maximum
+                          ? null
+                          : (event) {
+                              if (startY != null && startHeight != null) {
+                                resize(
+                                  startHeight! +
+                                      event.globalPosition.dy -
+                                      startY!,
+                                );
+                              }
+                            },
+                      onVerticalDragEnd: minimum == maximum
+                          ? null
+                          : (_) => cancelDrag(),
+                      onVerticalDragCancel: minimum == maximum
+                          ? null
+                          : cancelDrag,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            height: band,
+                            child: Center(
+                              child: Container(
+                                key: const ValueKey('screen-resize-grip'),
+                                width: 48,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: focused && handleFocus.hasPrimaryFocus
+                                      ? colors.primary
+                                      : colors.onSurfaceVariant,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(caption, style: style)),
-                            ],
+                            ),
                           ),
-                        ),
+                          controls,
+                        ],
                       ),
                     ),
                   ),
                 ),
               );
-              final bar = Listener(
-                onPointerDown: (_) =>
-                    viewerKey.currentState?.cancelPointerInput(),
-                child: Container(
-                  height: band,
-                  color: colors.surfaceContainer,
-                  foregroundDecoration: BoxDecoration(
-                    border: Border.all(
-                      color: focused ? colors.primary : colors.outlineVariant,
-                      width: focused ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: handle),
-                      if (compact)
-                        SizedBox(
-                          width: 48,
-                          child: PopupMenuButton<IconButton>(
-                            tooltip: t('screenControls'),
-                            icon: const Icon(Icons.more_horiz),
-                            onOpened: () {
-                              viewerKey.currentState?.cancelPointerInput();
-                              setState(() {
-                                menuHeight = effective;
-                                menuOpen = true;
-                              });
-                            },
-                            onCanceled: () {
-                              if (mounted) {
-                                setState(() {
-                                  menuOpen = false;
-                                  menuHeight = null;
-                                });
-                              }
-                            },
-                            onSelected: (button) {
-                              setState(() {
-                                menuOpen = false;
-                                menuHeight = null;
-                              });
-                              button.onPressed?.call();
-                            },
-                            itemBuilder: (_) => [
-                              for (final button
-                                  in viewerKey.currentState?.controlButtons(
-                                        widget.model.screen.value,
-                                      ) ??
-                                      <IconButton>[])
-                                PopupMenuItem<IconButton>(
-                                  value: button,
-                                  enabled: button.onPressed != null,
-                                  child: Row(
-                                    children: [
-                                      button.icon,
-                                      const SizedBox(width: 12),
-                                      Flexible(child: Text(button.tooltip!)),
-                                    ],
-                                  ),
-                                ),
-                            ],
+              final compactControls = SizedBox(
+                key: const ValueKey('viewer-toolbar'),
+                height: 48,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    width: 48,
+                    child: PopupMenuButton<IconButton>(
+                      tooltip: t('screenControls'),
+                      icon: const Icon(Icons.more_horiz),
+                      onOpened: () {
+                        viewerKey.currentState?.cancelPointerInput();
+                        setState(() {
+                          menuHeight = effective;
+                          menuOpen = true;
+                        });
+                      },
+                      onCanceled: () {
+                        if (mounted) {
+                          setState(() {
+                            menuOpen = false;
+                            menuHeight = null;
+                          });
+                        }
+                      },
+                      onSelected: (button) {
+                        setState(() {
+                          menuOpen = false;
+                          menuHeight = null;
+                        });
+                        button.onPressed?.call();
+                      },
+                      itemBuilder: (_) => [
+                        for (final button
+                            in viewerKey.currentState?.controlButtons(
+                                  widget.model.screen.value,
+                                ) ??
+                                <IconButton>[])
+                          PopupMenuItem<IconButton>(
+                            value: button,
+                            enabled: button.onPressed != null,
+                            child: Row(
+                              children: [
+                                button.icon,
+                                const SizedBox(width: 12),
+                                Flexible(child: Text(button.tooltip!)),
+                              ],
+                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
               return SizedBox(
                 key: const ValueKey('resizable-screen'),
                 height: effective,
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: ScreenViewer(
-                        key: viewerKey,
-                        model: widget.model,
-                        direct: widget.direct,
-                        showToolbar: !compact,
-                      ),
-                    ),
-                    if (frame.hidden != true) bar,
-                  ],
+                child: ScreenViewer(
+                  key: viewerKey,
+                  model: widget.model,
+                  direct: widget.direct,
+                  toolbarBuilder: (toolbar) =>
+                      resizeChrome(compact ? compactControls : toolbar),
                 ),
               );
             },
