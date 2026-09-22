@@ -1,0 +1,24 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp
+- assertVisible: "Your TVs"
+- tapOn: "Enter address"
+- tapOn: "TV name"
+- inputText: "Editor protocol fixture"
+- takeScreenshot: fixture-name
+- tapOn: "TV address"
+- inputText: "10.0.2.15"
+- tapOn: "(?s)Settings.*"
+- tapOn: "VNC port"
+- eraseText
+- inputText: "15900"
+- scrollUntilVisible:
+    element: "VNC password"
+    direction: DOWN
+- tapOn: "VNC password"
+- inputText: "viewer-test"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Live TV screen"
+    timeout: 30000
+- takeScreenshot: editor-fixture-connected

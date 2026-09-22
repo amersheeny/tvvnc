@@ -1,0 +1,7 @@
+appId: com.asheeny.tvvnc
+---
+- tapOn: "Pair with your TV"
+- extendedWaitUntil:
+    visible: "Pairing code"
+    timeout: 15000
+- takeScreenshot: pairing-code

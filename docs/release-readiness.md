@@ -1,8 +1,69 @@
 # TV VNC release status — 2026-09-22
 
-Publication is requested but not complete. No public repository, GitHub release,
-Play app entry or Play submission has been created. The installed application
+Publication is requested but not complete. The public repository is
+https://github.com/amersheeny/tvvnc, currently empty. The outstanding release
+work is tracked at https://github.com/amersheeny/tvvnc/issues/1.
+No source push, GitHub release, Play app entry or Play submission has been made.
+The installed application
 remains the data-preserving development build, not a Play-signed release.
+
+## Latest local checkpoint
+
+App `e24835b`, native Remote library `a17e093` are committed. The APK is
+`/Users/amsh/worktrees/tvVNC/releases/tvvnc-e24835b-debug.apk`, SHA-256
+`936c270bd2f92ac68c1e318a551ecf50a3b10b5009938b3f782822f253f87dff`.
+It is installed on the headed emulator, not the physical Samsung. The last
+phone installation remains the artifact recorded below; subsequent USB and
+wireless-ADB discovery do not currently show the phone.
+
+The five original control findings below and atomic native editor publication
+have source repairs and regression tests. Native metadata now carries TV input
+type, IME options and action information. Phone selection is sent in native
+edit batches; TV-declared passwords are masked before prefill. Native pending
+echoes keep keyed fingerprints instead of historical plaintext values.
+
+The latest Flutter run reports 143 passing tests in
+`/Users/amsh/worktrees/tvVNC/dialog-lifetime-full-tests.log`; analyzer is clean
+in `/Users/amsh/worktrees/tvVNC/dialog-lifetime-analyze.log`. Android app units
+passed in `/Users/amsh/worktrees/tvVNC/editor-metadata-app-tests.log`; the
+unchanged native library inputs retain their full-suite and metadata-test
+results in `/Users/amsh/worktrees/tvVNC/editor-metadata-core-tests.log` and
+`/Users/amsh/worktrees/tvVNC/editor-metadata-core-native-tests.log`.
+
+Actual app testing with the loopback protocol fixture uncovered a disposed
+controller on pairing-dialog exit. The same defect was reproduced in Sony PIN
+and app-link dialogs. All three now let the field own its controller; automatic
+pairing closure additionally checks that the dialog route is still current.
+Failing-before logs are `/Users/amsh/worktrees/tvVNC/pair-dialog-before.log`,
+`/Users/amsh/worktrees/tvVNC/sony-dialog-before.log` and
+`/Users/amsh/worktrees/tvVNC/link-dialog-before.log`. The passing navigation
+run, including cancellation and underlying-page protection, is
+`/Users/amsh/worktrees/tvVNC/dialog-lifetime-after.log`.
+
+The real headed-emulator re-pair/edit flow passed in
+`/Users/amsh/worktrees/tvVNC/editor-fixture-edit2.log`. Its inspected captures
+are in `/Users/amsh/worktrees/tvVNC/editor-fixture-edit2/screenshots`.
+The independent receiver log `/Users/amsh/worktrees/tvVNC/editor-fixture.log`
+records successive edit lengths 15, 16, 17, 18, backspace to 17, and native
+Search action 3 without Send. Password mask/reveal checks passed with inspected
+light and dark/130%-text captures in
+`/Users/amsh/worktrees/tvVNC/editor-fixture-password/screenshots` and
+`/Users/amsh/worktrees/tvVNC/editor-fixture-password-dark-large/screenshots`.
+Temporary emulator night/font settings were restored to no/1.0.
+
+These fixtures are not the physical Sony. Their RFB picture is a test pattern,
+not an editor rendering. New physical caret, password, numeric/multiline and
+editor-action acceptance remains open. The local Sony HTTP fixture cannot
+bind privileged port 80 in this environment; its port-18080 responses are not
+claimed as actual-app Sony fallback proof. The final combined technical and
+rendered-product reviews, currentness checks, copy gate and production signing
+remain open. The Diagnostics standby explanation also needs correction: fresh
+Sony On observations can resume reconnects, contrary to its current wording.
+
+The user confirmed public GitHub publication and a free Play app under Apptico
+LTD. Play reports package `com.asheeny.tvvnc` available. The prepared form is
+awaiting the user's declaration confirmation and installer-check choice.
+Public support email is still needed. No legal declaration was accepted.
 
 ## Installed artifact and physical evidence
 
@@ -45,11 +106,10 @@ Unicode/emoji, multiline editing, focus races, voice, panel standby/wake,
 external HDMI capture, or the entire hardware-acceptance checklist. No measured
 latency percentile is claimed.
 
-## Outstanding control repairs
+## Original control findings at the installed phone checkpoint
 
-All items below are HIGH-priority release work, not completed fixes. There is
-currently no repository remote or issue tracker; carry these entries into the
-publication pull request's findings ledger when that exists.
+The following historical diagnoses describe `d63a51f`, not the current local
+source. The source repairs and remaining acceptance limits are recorded above.
 
 1. Macro panel readiness: the `WAKE`/`WAIT_FOR_TV` condition in
    `/Users/amsh/worktrees/tvVNC/worktree/android/app/src/main/kotlin/dev/tvvnc/tv_vnc/core/TvController.kt`
@@ -118,10 +178,11 @@ performed in this validation run.
 
 ## Publication preparation
 
-- GitHub CLI is authenticated as `amersheeny`; `amersheeny/tvvnc` does not exist.
+- GitHub CLI is authenticated as `amersheeny`; the empty public repository and
+  release-tracking issue linked above now exist.
 - Play Console is accessible under the Apptico LTD organization account. It
   shows no existing apps and an inactivity warning with a November 14 deadline.
-  Account/pricing confirmation is pending; no declarations were accepted.
+  Account/pricing were confirmed by the user; no declarations were accepted.
 - The app is GPL-3.0-or-later, with existing dependency notices. Two gitlinks
   still use local URLs; the maintained Android Remote and LibVNCServer forks
   must be publicly fetchable before source publication is usable.
