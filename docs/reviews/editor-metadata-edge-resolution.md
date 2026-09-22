@@ -93,3 +93,16 @@ The RFB fixture is a color pattern, not the rendered TV editor. These runs do
 not establish the new behavior on the physical Sony. Full release review,
 production signing, copy-gate approval and Play submission remain open in
 https://github.com/amersheeny/tvvnc/issues/1.
+
+## Scoped product follow-up
+
+The existing product reviewer inspected the repaired source, receiver evidence
+and six new real-app captures. Both returned findings were closed and no new
+evidence-backed keyboard defect was reported. Custom-action contrast measured
+6.46:1 light and 7.73:1 dark. The dark/full-IME/130%-text run passed in
+`/Users/amsh/worktrees/tvVNC/editor-edges-custom-dark-large.log`; its inspected
+captures are in `/Users/amsh/worktrees/tvVNC/editor-edges-custom-dark-large/screenshots`.
+Temporary night and font settings were restored to no/1.0. This is not a full
+release sign-off: physical Sony behavior, changed-path TalkBack,
+landscape/extreme type sizes, long custom labels and numeric/multiline renders
+remain unproven.
