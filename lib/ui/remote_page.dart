@@ -67,26 +67,28 @@ class _VolumeSliderState extends State<VolumeSlider> {
   String? volumeContext;
   @override
   Widget build(BuildContext context) {
-    final maximum = (widget.model.state?.volumeMax ?? 100).toDouble();
-    final minimum = (widget.model.state?.volumeMin ?? 0).toDouble();
+    final s = widget.model.state;
+    if (s?.volume == null ||
+        s?.volumeMax == null ||
+        s?.volumeMin == null ||
+        s?.volumeContext == null) {
+      return const SizedBox.shrink();
+    }
+    final maximum = s!.volumeMax!.toDouble();
+    final minimum = s.volumeMin!.toDouble();
     if (maximum <= minimum) return const SizedBox.shrink();
     return Column(
       children: [
-        Text(
-          '${t('volume')}: ${(draft ?? widget.model.state?.volume ?? 0).round()}',
-        ),
+        Text(volumeLabel('${(draft ?? s.volume!).round()}', s.volumeTarget)),
         Slider(
-          value: (draft ?? widget.model.state?.volume?.toDouble() ?? 0).clamp(
-            minimum,
-            maximum,
-          ),
+          value: (draft ?? s.volume!.toDouble()).clamp(minimum, maximum),
           min: minimum,
           max: maximum,
           semanticFormatterCallback: (value) =>
-              '${t('volume')} ${value.round()}',
+              volumeLabel('${value.round()}', s.volumeTarget),
           onChangeStart: (_) {
             origin = widget.model.target;
-            volumeContext = widget.model.state?.volumeContext;
+            volumeContext = s.volumeContext;
           },
           onChanged: (value) => setState(() => draft = value),
           onChangeEnd: (value) async {

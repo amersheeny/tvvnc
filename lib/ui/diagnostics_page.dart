@@ -86,7 +86,18 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
               : input?.name ?? s?.currentInput ?? t('unknown'),
         ),
         InfoRow(t('currentApp'), s?.currentApp ?? t('unknown')),
-        InfoRow(t('volume'), s?.volume?.toString() ?? t('unknown')),
+        if (s?.volumeTarget == null)
+          InfoRow(t('volume'), s?.volume?.toString() ?? t('unknown'))
+        else
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Text(
+              volumeLabel(
+                s?.volume?.toString() ?? t('unknown'),
+                s?.volumeTarget,
+              ),
+            ),
+          ),
         InfoRow(
           t('muted'),
           s?.muted == null ? t('unknown') : t(s!.muted! ? 'yes' : 'no'),

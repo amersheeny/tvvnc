@@ -68,4 +68,47 @@ void main() {
       m.dispose();
     },
   );
+  for (final missing in ['minimum', 'maximum', 'level', 'context']) {
+    testWidgets('absolute slider never invents missing $missing', (
+      tester,
+    ) async {
+      final m = model(RecordingApi());
+      m.state!
+        ..volume = missing == 'level' ? null : 15
+        ..volumeMin = missing == 'minimum' ? null : 10
+        ..volumeMax = missing == 'maximum' ? null : 30
+        ..volumeContext = missing == 'context' ? null : 'sony:headphone:10:30';
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: VolumeSlider(m))),
+      );
+      expect(find.byType(Slider), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      m.dispose();
+    });
+  }
+  testWidgets(
+    'Sony slider identifies its named output in visual and spoken text',
+    (tester) async {
+      final m = model(RecordingApi());
+      m.state!
+        ..volume = 15
+        ..volumeMin = 10
+        ..volumeMax = 30
+        ..volumeContext = 'sony:headphone:10:30'
+        ..volumeTarget = 'headphone';
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: VolumeSlider(m))),
+      );
+      expect(find.text('Volume for Headphones: 15'), findsOneWidget);
+      final slider = tester.widget<Slider>(find.byType(Slider));
+      expect(
+        slider.semanticFormatterCallback!(20),
+        'Volume for Headphones: 20',
+      );
+      expect(slider.min, 10);
+      expect(slider.max, 30);
+      await tester.pumpWidget(const SizedBox());
+      m.dispose();
+    },
+  );
 }

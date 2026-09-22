@@ -8,6 +8,17 @@ import '../model/tv_model.dart';
 import 'copy.dart';
 
 String t(String key) => Copy.text(key);
+String volumeLabel(String level, String? target) {
+  final output = switch (target) {
+    'speaker' => t('audioSpeakers'),
+    'headphone' => t('audioHeadphones'),
+    final name => name,
+  };
+  return output == null
+      ? '${t('volume')}: $level'
+      : Copy.format('volumeForOutput', {'output': output, 'level': level});
+}
+
 String availability(Availability status) => t(switch (status) {
   Availability.advertised => 'advertised',
   Availability.needsSetup => 'needsSetup',
