@@ -9,7 +9,7 @@ class RemoteDiagnosticHistoryTest {
         val history = RemoteDiagnosticHistory()
         history.onEvent(RemoteDiagnostic.IME_APP_ONLY)
         repeat(40) {
-            history.onEvent(if (it % 2 == 0) RemoteDiagnostic.IME_FIELD_WITH_TEXT else RemoteDiagnostic.IME_COUNTER_UPDATED)
+            history.onEvent(if (it % 2 == 0) RemoteDiagnostic.IME_FIELD_WITH_TEXT else RemoteDiagnostic.IME_VISIBILITY_UPDATED)
         }
         val (recent, seen) = history.snapshot()
         assertEquals(16, recent.size)
