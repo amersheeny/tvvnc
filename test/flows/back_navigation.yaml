@@ -12,7 +12,7 @@ appId: com.asheeny.tvvnc
 - assertVisible: "navigation fixture"
 - takeScreenshot: keyboard-before-page-back
 - back
-- assertVisible: "Power"
+- assertVisible: "Keyboard"
 - takeScreenshot: returned-to-remote
 - back
 - assertVisible: "Your TVs"
@@ -51,10 +51,10 @@ appId: com.asheeny.tvvnc
 - back
 - assertVisible: "Hide text"
 - back
-- assertVisible: "Power"
+- assertVisible: "Keyboard"
 - tapOn: "Full screen"
 - back
-- assertVisible: "Power"
+- assertVisible: "Keyboard"
 - takeScreenshot: fullscreen-returned-to-remote
 - back
 - assertVisible: "Your TVs"

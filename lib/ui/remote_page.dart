@@ -116,28 +116,6 @@ class RemotePage extends StatefulWidget {
 
 class _RemotePageState extends State<RemotePage> {
   final screenKey = GlobalKey();
-  String? powerMenuDevice;
-  Availability powerState(String id) =>
-      widget.model.state?.capabilities
-          .where((c) => c.id == id)
-          .firstOrNull
-          ?.state ??
-      Availability.unknown;
-  void power(CommandKind kind, String id) {
-    if (!mounted || widget.model.selected?.id != powerMenuDevice) return;
-    final state =
-        widget.model.state?.capabilities
-            .where((c) => c.id == id)
-            .firstOrNull
-            ?.state ??
-        Availability.unknown;
-    if (!canTry(state)) {
-      explainControl(context, widget.model, t(id));
-    } else {
-      widget.model.command(kind);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final m = widget.model;
@@ -146,49 +124,8 @@ class _RemotePageState extends State<RemotePage> {
         ? m.selected!.layout
         : defaultLayout;
     final standardLayout = layout.join('|') == defaultLayout.join('|');
-    final powerFooter = Align(
-      alignment: AlignmentDirectional.centerEnd,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: PopupMenuButton<String>(
-          tooltip: t('power'),
-          icon: const Icon(Icons.power_settings_new, size: 24),
-          style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-          onOpened: () => powerMenuDevice = m.selected?.id,
-          onSelected: (id) => power(switch (id) {
-            'powerOn' => CommandKind.powerOn,
-            'powerOff' => CommandKind.powerOff,
-            _ => CommandKind.powerToggle,
-          }, id),
-          itemBuilder: (_) => [
-            for (final id in ['powerOn', 'powerOff', 'powerToggle'])
-              PopupMenuItem(
-                value: id,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(t(id)),
-                      if (!canTry(powerState(id)))
-                        Text(
-                          availability(powerState(id)),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-    Widget remoteControlsList({
-      bool shrink = false,
-      bool scrollFooter = false,
-    }) {
-      final list = ListView(
+    Widget remoteControlsList({bool shrink = false}) {
+      return ListView(
         shrinkWrap: shrink,
         physics: shrink ? const NeverScrollableScrollPhysics() : null,
         padding: const EdgeInsets.all(16),
@@ -390,14 +327,6 @@ class _RemotePageState extends State<RemotePage> {
               ),
             ],
           ),
-          if (shrink || scrollFooter) powerFooter,
-        ],
-      );
-      if (shrink || scrollFooter) return list;
-      return Column(
-        children: [
-          Expanded(child: list),
-          powerFooter,
         ],
       );
     }
@@ -409,10 +338,7 @@ class _RemotePageState extends State<RemotePage> {
           final wide =
               box.maxWidth > 760 && box.maxHeight >= 56 && frame.hidden != true;
           final short = !wide && box.maxHeight < 192;
-          final remote = remoteControlsList(
-            shrink: short,
-            scrollFooter: box.maxHeight < 56 + 48,
-          );
+          final remote = remoteControlsList(shrink: short);
           final preview = ResizableScreen(
             key: screenKey,
             model: m,

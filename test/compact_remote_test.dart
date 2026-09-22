@@ -33,10 +33,11 @@ void main() {
       expect(find.byType(ChoiceChip), findsNothing);
       expect(find.text('Turn on'), findsNothing);
       expect(find.text('Turn off'), findsNothing);
-      final power = find.byTooltip('Power');
+      expect(find.byTooltip('Power'), findsNothing);
+      final keyboard = find.byTooltip('Keyboard');
       if (size.width > 760 && size.height < 104) {
         await tester.scrollUntilVisible(
-          power,
+          keyboard,
           80,
           scrollable: find
               .descendant(
@@ -47,13 +48,10 @@ void main() {
           maxScrolls: 50,
         );
       } else {
-        await tester.ensureVisible(power);
+        await tester.ensureVisible(keyboard);
       }
       await tester.pumpAndSettle();
-      expect(tester.getSize(power).height, greaterThanOrEqualTo(48));
-      if (size.height > 192) {
-        expect(tester.getBottomRight(power).dy, greaterThan(size.height - 20));
-      }
+      expect(tester.getSize(keyboard).height, greaterThanOrEqualTo(48));
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       m.dispose();
@@ -114,36 +112,32 @@ void main() {
   );
 
   for (final changed in [false, true]) {
-    testWidgets(
-      'power menu is deliberate and session bound: changed=$changed',
-      (tester) async {
-        final api = RecordingApi();
-        final m = model(api);
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: RemotePage(model: m, onPage: (_) {}),
-            ),
+    testWidgets('unverified power is absent across session changes: $changed', (
+      tester,
+    ) async {
+      final api = RecordingApi();
+      final m = model(api);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RemotePage(model: m, onPage: (_) {}),
           ),
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(find.byTooltip('Power'));
-        await tester.pumpAndSettle();
-        expect(api.commands, isEmpty);
-        expect(find.text('Turn on'), findsOneWidget);
-        expect(find.text('Turn off'), findsOneWidget);
-        expect(find.text('Turn on or off'), findsOneWidget);
-        if (changed) m.snapshotChanged(snapshot('a', 2));
-        await tester.tap(find.text('Turn off'));
-        await tester.pumpAndSettle();
-        expect(api.commands.single.kind, CommandKind.powerOff);
-        expect(api.commands.single.sessionId, changed ? 2 : 1);
-        await tester.pumpWidget(const SizedBox());
-        m.dispose();
-      },
-    );
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Power'), findsNothing);
+      if (changed) m.snapshotChanged(snapshot('a', 2));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Power'), findsNothing);
+      expect(find.text('Turn off'), findsNothing);
+      expect(api.commands, isEmpty);
+      await tester.pumpWidget(const SizedBox());
+      m.dispose();
+    });
   }
-  testWidgets('power menu does not retarget another TV', (tester) async {
+  testWidgets('changing TV cannot expose unverified power controls', (
+    tester,
+  ) async {
     final api = RecordingApi();
     final m = model(api);
     await tester.pumpWidget(
@@ -154,12 +148,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Power'));
-    await tester.pumpAndSettle();
+    expect(find.byTooltip('Power'), findsNothing);
     m.selected = profile('b');
     m.snapshotChanged(snapshot('b', 2));
-    await tester.tap(find.text('Turn on'));
     await tester.pumpAndSettle();
+    expect(find.byTooltip('Power'), findsNothing);
     expect(api.commands, isEmpty);
     await tester.pumpWidget(const SizedBox());
     m.dispose();
@@ -188,7 +181,7 @@ void main() {
     expect(tester.widget<RemotePage>(find.byType(RemotePage)).mode, 'remote');
   });
 
-  testWidgets('unavailable power keeps explanation without dispatching', (
+  testWidgets('unavailable power is not exposed as a remote button', (
     tester,
   ) async {
     final api = RecordingApi();
@@ -209,12 +202,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Power'));
-    await tester.pumpAndSettle();
-    expect(find.text('Not supported'), findsOneWidget);
-    await tester.tap(find.text('Turn on'));
-    await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.byTooltip('Power'), findsNothing);
+    expect(find.text('Turn off'), findsNothing);
     expect(api.commands, isEmpty);
     await tester.pumpWidget(const SizedBox());
     m.dispose();

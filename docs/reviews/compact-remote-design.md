@@ -14,17 +14,16 @@ touch confirmation is preserved, with device/page checks across the dialog.
 Viewer already releases its pointer when the direct flag changes. The redundant
 Touchpad drawer destination is removed as part of the user's requested move.
 
-One neutral 24 dp power icon occupies a 48 dp target below the control list.
-Its menu preserves explicit on, off and toggle actions; opening sends nothing.
-Device ownership is captured at opening, capability and session at selection.
-Unavailable items show existing availability wording and remain tappable for
-the explanation. Unknown capability still permits an attempt.
+The user's subsequent explicit condition supersedes the power-footer plan:
+do not present a remote-area power control unless it controls the TV itself.
+Actual TV power remains unverified, so the remote currently contains neither
+the large power row nor a replacement power icon. The three modes remain in
+the overflow menu. No layout/command mapping or hold behavior is changed by
+removing that misleading control.
 
-The footer is pinned in ordinary portrait/wide layouts without overlaying the
-list. On an extremely short wide column (<56+48 dp) it scrolls with that list;
-the existing narrow whole-page-scroll layout also includes it in content.
-No transport, command mapping, hold semantics, custom button order or copy is
-changed.
+The controller no longer disconnects channels after an unconfirmed power
+request. A fresh Sony standby observation is required to pause retry policy;
+a sent command alone is not an observation of the panel's power state.
 
 ## Plan review ledger
 

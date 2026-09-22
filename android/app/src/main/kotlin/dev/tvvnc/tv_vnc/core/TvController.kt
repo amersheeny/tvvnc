@@ -470,7 +470,7 @@ class TvController(private val context: Context, private val textures: TextureRe
                 // Stop future wake attempts before awaiting any network result.
                 waking?.cancel(); cancelMacro(); voice.stop(discardAudio = true)
             }
-            val result = router.execute(command)
+            var result = router.execute(command)
             if (command.kind == CommandKind.KEY && command.code in setOf(23L, 4L)) {
                 lastNavigation = command.code!! to result
             }
@@ -478,9 +478,16 @@ class TvController(private val context: Context, private val textures: TextureRe
                 off = priorOff; store.setPowerOffIntent(profile.id, priorOff)
             }
             if (requestsOff && powerEpoch == powerIntentEpoch && result.delivery in setOf(Delivery.SENT, Delivery.CONFIRMED, Delivery.UNKNOWN)) {
-                off = true; store.setPowerOffIntent(profile.id, true)
-                sony.invalidatePower(); router.releaseAll()
-                remote.disconnect(); vnc?.close(); vnc = null; stage = "reconnectPaused"
+                // Delivery does not prove that the TV panel entered standby.
+                // Preserve the channels; only fresh TV state may pause retries.
+                off = false; store.setPowerOffIntent(profile.id, false)
+                sony.invalidatePower()
+                refreshSony(false, powerOnly = true)
+                if (powerEpoch == powerIntentEpoch) {
+                    off = sony.state.power == "standby"
+                    store.setPowerOffIntent(profile.id, off)
+                    if (!off) result = result.copy(delivery = Delivery.UNKNOWN)
+                }
             }
             if (command.kind == CommandKind.POWER_TOGGLE && !requestsOff && powerEpoch == powerIntentEpoch &&
                 result.delivery in setOf(Delivery.SENT, Delivery.CONFIRMED, Delivery.UNKNOWN)) {
