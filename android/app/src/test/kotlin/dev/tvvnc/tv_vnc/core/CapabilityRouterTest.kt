@@ -7,6 +7,13 @@ import org.junit.Test
 import java.net.InetAddress
 
 class CapabilityRouterTest {
+    @Test fun anAbsoluteVolumeCommandRequiresItsObservedContext() {
+        assertFalse(CapabilityRouter.volumeContextMatches(null, null))
+        assertFalse(CapabilityRouter.volumeContextMatches(null, "sony:speaker:0:100"))
+        assertFalse(CapabilityRouter.volumeContextMatches("sony:speaker:0:100", null))
+        assertFalse(CapabilityRouter.volumeContextMatches("sony:speaker:0:100", "sony:headphone:0:100"))
+        assertTrue(CapabilityRouter.volumeContextMatches("sony:speaker:0:100", "sony:speaker:0:100"))
+    }
     @Test fun queuedTapCannotActOnAReplacementConnection() = runBlocking {
         val entered = CompletableDeferred<Unit>()
         val finish = CompletableDeferred<Unit>()
@@ -87,6 +94,12 @@ class CapabilityRouterTest {
         val first = Port("native", CommandOutcome(Delivery.NOT_SENT, "native", "editor_changed"))
         val second = Port("vnc", CommandOutcome(Delivery.SENT, "vnc", null))
         CapabilityRouter({ true }) { listOf(first, second) }.execute(command(CommandKind.TEXT))
+        assertTrue(second.calls.isEmpty())
+    }
+    @Test fun staleAudioContextDoesNotFallBackToAnotherOutput() = runBlocking {
+        val first = Port("native", CommandOutcome(Delivery.NOT_SENT, "native", "audio_output_changed"))
+        val second = Port("sony", CommandOutcome(Delivery.SENT, "sony", null))
+        CapabilityRouter({ true }) { listOf(first, second) }.execute(command(CommandKind.VOLUME))
         assertTrue(second.calls.isEmpty())
     }
     @Test fun releaseGoesToOriginTransportEvenWhenPreferenceChanges() = runBlocking {

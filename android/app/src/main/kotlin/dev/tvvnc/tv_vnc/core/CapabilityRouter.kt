@@ -55,6 +55,7 @@ class CapabilityRouter(private val valid: (TvCommand) -> Boolean,
     }
 
     companion object {
+        fun volumeContextMatches(expected: String?, actual: String?): Boolean = expected != null && expected == actual
         fun liveRemoteAvailability(connected: Boolean, reported: Availability): Availability =
             if (connected) Availability.READY else reported.takeUnless { it == Availability.READY } ?: Availability.UNAVAILABLE
         /** A dead connection does not establish lack of device support. */
