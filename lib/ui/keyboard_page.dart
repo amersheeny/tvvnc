@@ -675,7 +675,6 @@ class KeyboardPageState extends State<KeyboardPage>
         live &&
         !pendingSync &&
         !finishing &&
-        text.value.composing.isCollapsed &&
         (!repeat || debounce?.isActive != true)) {
       debounce = Timer(const Duration(milliseconds: 180), () {
         if (foreground && live && !pausedEdit && !pendingSync && dirtyLive) {

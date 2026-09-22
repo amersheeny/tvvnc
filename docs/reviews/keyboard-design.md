@@ -37,13 +37,16 @@ Preview resizing follows keyboard implementation and validation.
   reconnection as paused buffers, never cached or replayed. Clean native mirrors
   follow reported state on resume. Sensitive buffers still clear. Mask/reveal
   preserves pending-send ownership; only pending clipboard reads are invalidated.
-- A matching native counter update retains an already received field snapshot.
-  Known counters for a different field cannot be used to send the current edit.
-  That refusal retains the local buffer and shows an accessible persistent
-  notice; automatic typing dispatch stops until a deliberate Send/exit attempt.
-  No timer, snapshot or reconnect replays the buffer. The initial zero-counter
-  behavior remains until the server supplies counters. Actual Sony counter
-  timing remains unverified without the paired phone connected.
+- Native batch counters are independent of the counter in a full field status.
+  The real Sony reported a text-filled field then an unequal batch tuple; the
+  former equality assumption cleared the valid editor. Batch updates now retain
+  the full snapshot and use the TV's tuple as supplied, including zeros. Actual
+  field/app updates, errors and disconnects still invalidate editor ownership.
+  A new field revision still rejects a command captured for the old editor.
+- Phone composing text is mirrored without committing or replacing the phone
+  IME composition. Waiting for composition to end delayed ordinary typing until
+  Space/Send. Counter and composition fixes still require actual Sony write and
+  focus-loss evidence; fixture tests alone do not prove either.
 
 ## Focus and navigation
 

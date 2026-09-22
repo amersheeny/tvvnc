@@ -498,34 +498,46 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     m.dispose();
   });
-  testWidgets('live edit commits an IME composition without a text change', (
-    tester,
-  ) async {
-    final api = RecordingApi();
-    final m = model(api);
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
-    await tester.pump();
-    tester.testTextInput.updateEditingValue(
-      const TextEditingValue(
-        text: 'かな',
-        selection: TextSelection.collapsed(offset: 2),
-        composing: TextRange(start: 0, end: 2),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(api.commands, isEmpty);
-    tester.testTextInput.updateEditingValue(
-      const TextEditingValue(
-        text: 'かな',
-        selection: TextSelection.collapsed(offset: 2),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(api.commands.single.value, 'かな');
-    expect(api.commands.single.replaceText, isTrue);
-    await tester.pumpWidget(const SizedBox());
-    m.dispose();
-  });
+  testWidgets(
+    'live edit mirrors composing text without committing the phone IME',
+    (tester) async {
+      final api = RecordingApi();
+      final m = model(api);
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: KeyboardPage(m))),
+      );
+      await tester.pump();
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'かな',
+          selection: TextSelection.collapsed(offset: 2),
+          composing: TextRange(start: 0, end: 2),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(api.commands.single.value, 'かな');
+      expect(api.commands.single.replaceText, isTrue);
+      expect(
+        tester
+            .widget<TextField>(find.byType(TextField))
+            .controller!
+            .value
+            .composing,
+        const TextRange(start: 0, end: 2),
+      );
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'かな',
+          selection: TextSelection.collapsed(offset: 2),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(api.commands.single.value, 'かな');
+      expect(api.commands.single.replaceText, isTrue);
+      await tester.pumpWidget(const SizedBox());
+      m.dispose();
+    },
+  );
   test('native permission observation clears a stale denial banner', () {
     final m = model(RecordingApi())..networkPermissionDenied = true;
     m.snapshotChanged(snapshot('a', 2)..networkPermissionGranted = true);

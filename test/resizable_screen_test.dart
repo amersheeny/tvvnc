@@ -236,7 +236,8 @@ void main() {
         composing: TextRange(start: 0, end: 2),
       ),
     );
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(api.commands.single.value, 'かな');
     final clientCount = tester.testTextInput.log
         .where((call) => call.method == 'TextInput.setClient')
         .length;
@@ -255,7 +256,7 @@ void main() {
           .length,
       clientCount,
     );
-    expect(api.commands, isEmpty);
+    expect(api.commands.length, 1); // rotation does not resend composing text
     await tester.pumpWidget(const SizedBox());
     m.dispose();
   });
