@@ -7,7 +7,13 @@ import 'package:tv_vnc/bridge/tv_api.g.dart';
 import 'package:tv_vnc/ui/keyboard_page.dart';
 
 import 'widget_safety_test.dart'
-    show RecordingApi, model, snapshot, composeModel, toggleMask;
+    show
+        RecordingApi,
+        model,
+        snapshot,
+        composeModel,
+        toggleMask,
+        queuePhoneText;
 
 void main() {
   testWidgets(
@@ -25,16 +31,11 @@ void main() {
         CommandOutcome(
           delivery: Delivery.notSent,
           transport: 'remote',
-          errorCode: 'ime_sync_pending',
+          errorCode: 'no_editor',
         ),
       );
       await tester.pumpAndSettle();
-      expect(
-        find.text(
-          'Your text is not going to the TV. Select Send to try again.',
-        ),
-        findsOneWidget,
-      );
+      expect(m.message, 'Select a text field on the TV first.');
       expect(
         find.text('These keys act on the TV, not the draft above.'),
         findsOneWidget,
@@ -349,7 +350,7 @@ void main() {
     },
   );
   testWidgets(
-    'counter synchronization refusal preserves the live draft for a deliberate retry',
+    'native refusal preserves the live draft for a deliberate confirmed retry',
     (tester) async {
       final api = RecordingApi()..delayed = Completer<CommandOutcome>();
       final m = model(api);
@@ -362,7 +363,7 @@ void main() {
       api.delayed!.complete(
         CommandOutcome(
           delivery: Delivery.notSent,
-          errorCode: 'ime_sync_pending',
+          errorCode: 'no_editor',
           transport: 'remote',
         ),
       );
@@ -371,11 +372,11 @@ void main() {
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
         'Unsent edit',
       );
-      expect(find.text('Load TV text'), findsNothing);
+      expect(find.text('Load TV text'), findsOneWidget);
       const pending =
-          'Your text is not going to the TV. Select Send to try again.';
+          'Your text is not being sent automatically. Select Load TV text to replace what is here with the text last received from the TV.';
       expect(find.text(pending), findsOneWidget);
-      expect(m.message, isNull);
+      expect(m.message, 'Select a text field on the TV first.');
       expect(m.draft(('a', 'test.app')).text, isEmpty);
       final sent = api.commands.length;
       await tester.pump(const Duration(seconds: 1));
@@ -390,6 +391,9 @@ void main() {
       api.delayed = null;
       await tester.ensureVisible(find.text('Send'));
       await tester.tap(find.text('Send'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.text('Replace'));
       await tester.pumpAndSettle();
       expect(api.commands.last.value, 'Latest unsent edit');
       expect(api.commands.last.editorRevision, 1);
@@ -594,7 +598,7 @@ void main() {
         MaterialApp(home: Scaffold(body: KeyboardPage(m))),
       );
       await tester.pump();
-      await tester.enterText(find.byType(TextField), 'Unfinished edit');
+      await queuePhoneText(tester, 'Unfinished edit');
       m.snapshotChanged(
         snapshot('a', 1, revision: 2)..editor!.text = 'Other field',
       );

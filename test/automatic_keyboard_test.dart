@@ -6,7 +6,13 @@ import 'package:tv_vnc/bridge/tv_api.g.dart';
 import 'package:tv_vnc/ui/keyboard_page.dart';
 
 import 'widget_safety_test.dart'
-    show RecordingApi, model, snapshot, toggleMask, composeModel;
+    show
+        RecordingApi,
+        model,
+        snapshot,
+        toggleMask,
+        composeModel,
+        queuePhoneText;
 
 void background(WidgetTester tester) {
   tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
@@ -66,7 +72,7 @@ void main() {
         MaterialApp(home: Scaffold(body: KeyboardPage(m))),
       );
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'Retained edit');
+      await queuePhoneText(tester, 'Retained edit');
       m.snapshotChanged(
         snapshot('a', 1, revision: 2)..editor!.text = 'New field',
       );
@@ -135,14 +141,14 @@ void main() {
           MaterialApp(home: Scaffold(body: KeyboardPage(m))),
         );
         await tester.pumpAndSettle();
-        await tester.enterText(find.byType(TextField), 'Keep this edit');
+        await queuePhoneText(tester, 'Keep this edit');
         if (pending) {
           await tester.pump(const Duration(milliseconds: 200));
           api.delayed!.complete(
             CommandOutcome(
               delivery: Delivery.notSent,
               transport: 'remote',
-              errorCode: 'ime_sync_pending',
+              errorCode: 'no_editor',
             ),
           );
           await tester.pumpAndSettle();
@@ -201,10 +207,7 @@ void main() {
     final m = model(api);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byType(TextField),
-      'Harmless protected fixture',
-    );
+    await queuePhoneText(tester, 'Harmless protected fixture');
     await toggleMask(tester);
     await tester.pump(const Duration(milliseconds: 300));
     expect(api.commands.length, 1);

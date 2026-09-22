@@ -134,6 +134,14 @@ Future<void> toggleMask(WidgetTester tester) async {
   await tester.tap(find.byTooltip(hidden ? 'Show text' : 'Hide text'));
 }
 
+Future<void> queuePhoneText(WidgetTester tester, String value) async {
+  // enterText() calls idle(), which drains zero-duration dispatch timers.
+  // Deliver the IME event without running its queued send, so these tests
+  // still exercise cancellation/ownership before dispatch rather than after.
+  tester.testTextInput.enterText(value);
+  await tester.pump();
+}
+
 void main() {
   testWidgets('late phone paste cannot replace a cleared and retyped buffer', (
     tester,
@@ -998,7 +1006,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
     await toggleMask(tester);
     await tester.pump();
-    await tester.enterText(find.byType(TextField).first, 'fixture-secret');
+    await queuePhoneText(tester, 'fixture-secret');
     m.snapshotChanged(snapshot('a', 1, revision: 2));
     await tester.pump();
     expect(
@@ -1014,7 +1022,7 @@ void main() {
     final m = model(api);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: KeyboardPage(m))));
     await tester.pump();
-    await tester.enterText(find.byType(TextField).first, 'not the next field');
+    await queuePhoneText(tester, 'not the next field');
     m.snapshotChanged(snapshot('a', 1, revision: 2));
     await tester.pump(const Duration(milliseconds: 300));
     expect(api.commands, isEmpty);

@@ -7,14 +7,14 @@ import org.junit.Test
 class RemoteDiagnosticHistoryTest {
     @Test fun boundedRecentHistoryDoesNotEraseEarlierObservedKinds() {
         val history = RemoteDiagnosticHistory()
-        history.onEvent(RemoteDiagnostic.IME_COUNTER_INVALIDATED_FIELD)
+        history.onEvent(RemoteDiagnostic.IME_APP_ONLY)
         repeat(40) {
-            history.onEvent(if (it % 2 == 0) RemoteDiagnostic.IME_FIELD_WITH_TEXT else RemoteDiagnostic.IME_COUNTER_ALIGNED)
+            history.onEvent(if (it % 2 == 0) RemoteDiagnostic.IME_FIELD_WITH_TEXT else RemoteDiagnostic.IME_COUNTER_UPDATED)
         }
         val (recent, seen) = history.snapshot()
         assertEquals(16, recent.size)
-        assertFalse(recent.contains("IME_COUNTER_INVALIDATED_FIELD"))
-        assertTrue(seen.contains("IME_COUNTER_INVALIDATED_FIELD"))
+        assertFalse(recent.contains("IME_APP_ONLY"))
+        assertTrue(seen.contains("IME_APP_ONLY"))
         assertEquals(3, seen.size)
     }
 

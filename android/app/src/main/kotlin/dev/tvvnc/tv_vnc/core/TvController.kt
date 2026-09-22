@@ -188,6 +188,7 @@ class TvController(private val context: Context, private val textures: TextureRe
         }
         val snapshot = session.snapshot()
         val nativeState = session.remote.state.value
+        val imeWire = session.remote.imeWireStatus()
         val remoteObservations = session.diagnostics.snapshot()
         // Deliberate allowlist: never serialize profiles, commands, editor text,
         // cookies, certificates, keys, credentials or captured pixels.
@@ -203,6 +204,11 @@ class TvController(private val context: Context, private val textures: TextureRe
             .put("remoteEventsSeenThisSession", JSONArray(remoteObservations.second))
             .put("remoteEditor", JSONObject().put("present", nativeState.editor != null)
                 .put("hasText", nativeState.editor?.text?.isNotEmpty() == true))
+            .put("imeWire", JSONObject().put("imeCounter", imeWire.imeCounter)
+                .put("batchCounter", imeWire.batchCounter).put("snapshotCounter", imeWire.snapshotCounter)
+                .put("appCounter", imeWire.appCounter).put("receivedBatches", imeWire.receivedBatches)
+                .put("batchesWithEdits", imeWire.batchesWithEdits).put("textWrites", imeWire.textWrites)
+                .put("sentImeCounter", imeWire.sentImeCounter).put("sentBatchCounter", imeWire.sentBatchCounter))
             .put("lastNavigation", session.lastNavigation?.let { (code, outcome) ->
                 JSONObject().put("androidCode", code).put("transport", outcome.transport)
                     .put("delivery", outcome.delivery.name).put("error", outcome.errorCode)

@@ -260,12 +260,8 @@ class TvModel extends ChangeNotifier implements TvFlutterApi {
           result.delivery == Delivery.sent) {
         report('textUnconfirmed');
       }
-      // Keyboard owns a persistent, accessible indication for this text-only
-      // refusal. A snackbar on every attempt would duplicate that state.
-      if ((result.delivery == Delivery.notSent ||
-              result.delivery == Delivery.rejected) &&
-          !(kind == CommandKind.text &&
-              result.errorCode == 'ime_sync_pending')) {
+      if (result.delivery == Delivery.notSent ||
+          result.delivery == Delivery.rejected) {
         report(codeKey(result.errorCode));
       }
       if (kind == CommandKind.app && result.delivery == Delivery.sent) {
@@ -351,7 +347,6 @@ class TvModel extends ChangeNotifier implements TvFlutterApi {
   static String errorKey(Object error) =>
       codeKey(error is PlatformException ? error.message : null);
   static String codeKey(String? code) => switch (code) {
-    'ime_sync_pending' => 'notSent',
     'network_permission' => 'permissionBody',
     'authentication_required' => 'authFailed',
     'pairing_required' => 'pairingRequired',

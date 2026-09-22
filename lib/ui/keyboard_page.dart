@@ -43,7 +43,6 @@ class KeyboardPageState extends State<KeyboardPage>
   bool sensitiveDraft = false;
   bool get sensitive => private || sensitiveDraft;
   bool sending = false;
-  bool pendingSync = false;
   bool foreground = true;
   TvTarget? origin;
   DraftContext? draftContext;
@@ -97,7 +96,6 @@ class KeyboardPageState extends State<KeyboardPage>
     origin = widget.model.target;
     draftContext = widget.model.draftContext;
     widget.model.keepComposeContext(draftContext, composeDraftContext);
-    pendingSync = false;
     submittedEditor = null;
     revision = editor.revision;
     lastEditorRevision = editor.revision;
@@ -168,7 +166,6 @@ class KeyboardPageState extends State<KeyboardPage>
   }
 
   void restoreCompose() {
-    pendingSync = false;
     replaceBuffer(
       sensitive
           ? TextEditingValue.empty
@@ -322,14 +319,13 @@ class KeyboardPageState extends State<KeyboardPage>
       foreground = false;
       final holdEdit =
           (live || pausedEdit) &&
-          (dirtyLive || sending || composing || pendingSync || pausedEdit);
+          (dirtyLive || sending || composing || pausedEdit);
       invalidateMode();
       keepCompose();
       if (sensitive) {
         replaceBuffer(TextEditingValue.empty);
         live = false;
         pausedEdit = false;
-        pendingSync = false;
         followEditor = true;
         entryUntouched = true;
       } else if (holdEdit) {
@@ -348,7 +344,6 @@ class KeyboardPageState extends State<KeyboardPage>
           text.text.isEmpty &&
           !composing &&
           !sending &&
-          !pendingSync &&
           editor != null) {
         followEditor = true;
         bindEditor(editor);
@@ -484,14 +479,6 @@ class KeyboardPageState extends State<KeyboardPage>
       setState(() {
         activeSend = null;
         sending = false;
-        if (result?.errorCode == 'ime_sync_pending' &&
-            result?.delivery == Delivery.notSent) {
-          pendingSync = true;
-          debounce?.cancel();
-        } else if (result?.delivery == Delivery.sent ||
-            result?.delivery == Delivery.confirmed) {
-          pendingSync = false;
-        }
         if (replace &&
             (result?.delivery == Delivery.sent ||
                 result?.delivery == Delivery.confirmed)) {
@@ -516,9 +503,7 @@ class KeyboardPageState extends State<KeyboardPage>
       }
       if (replace &&
           result?.delivery != Delivery.sent &&
-          result?.delivery != Delivery.confirmed &&
-          !(result?.delivery == Delivery.notSent &&
-              result?.errorCode == 'ime_sync_pending')) {
+          result?.delivery != Delivery.confirmed) {
         setState(() {
           invalidateMode();
           live = false;
@@ -670,14 +655,11 @@ class KeyboardPageState extends State<KeyboardPage>
     entryUntouched = false;
     if (live) editedLive = true;
     keepCompose();
-    if (!repeat) debounce?.cancel();
-    if (foreground &&
-        live &&
-        !pendingSync &&
-        !finishing &&
-        (!repeat || debounce?.isActive != true)) {
-      debounce = Timer(const Duration(milliseconds: 180), () {
-        if (foreground && live && !pausedEdit && !pendingSync && dirtyLive) {
+    if (foreground && live && !finishing && debounce?.isActive != true) {
+      // Send on the next event-loop turn. A pause-to-send debounce starves
+      // continuous typing; the in-flight writer already coalesces newer edits.
+      debounce = Timer(Duration.zero, () {
+        if (foreground && live && !pausedEdit && dirtyLive) {
           send(replace: true);
         }
       });
@@ -787,16 +769,6 @@ class KeyboardPageState extends State<KeyboardPage>
                         ),
                       ),
                   ],
-                  if (pendingSync && !pausedEdit)
-                    Semantics(
-                      liveRegion: true,
-                      child: Text(
-                        t('imeSyncPending'),
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -866,7 +838,7 @@ class KeyboardPageState extends State<KeyboardPage>
                 t(live || pausedEdit ? 'editingKeys' : 'tvEditingKeys'),
               ),
             ),
-            if (!pausedEdit && (!live || !pendingSync))
+            if (!pausedEdit)
               Text(t(live ? 'liveEditingBody' : 'tvEditingBody')),
             const SizedBox(height: 8),
             Wrap(
