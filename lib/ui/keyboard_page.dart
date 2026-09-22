@@ -35,6 +35,9 @@ class KeyboardPageState extends State<KeyboardPage>
   bool finishing = false;
   int? submittedEditor;
   String lastSubmittedText = '';
+  TextSelection lastSubmittedSelection = const TextSelection.collapsed(
+    offset: 0,
+  );
   String lastObservedText = '';
   Future<bool>? inFlight;
   (bool, bool, bool)? inputMode;
@@ -78,7 +81,10 @@ class KeyboardPageState extends State<KeyboardPage>
     });
   }
 
-  bool get dirtyLive => (live || pausedEdit) && text.text != lastSubmittedText;
+  bool get dirtyLive =>
+      (live || pausedEdit) &&
+      (text.text != lastSubmittedText ||
+          text.selection.isValid && text.selection != lastSubmittedSelection);
   bool get unobservedLive =>
       (live || pausedEdit) &&
       editedLive &&
@@ -109,14 +115,12 @@ class KeyboardPageState extends State<KeyboardPage>
     editedLive = false;
     lastSubmittedText = editor.text;
     lastObservedText = editor.text;
+    lastSubmittedSelection = TextSelection(
+      baseOffset: editor.start.clamp(0, editor.text.length),
+      extentOffset: editor.end.clamp(0, editor.text.length),
+    );
     replaceBuffer(
-      TextEditingValue(
-        text: editor.text,
-        selection: TextSelection(
-          baseOffset: editor.start.clamp(0, editor.text.length),
-          extentOffset: editor.end.clamp(0, editor.text.length),
-        ),
-      ),
+      TextEditingValue(text: editor.text, selection: lastSubmittedSelection),
     );
   }
 
@@ -124,12 +128,13 @@ class KeyboardPageState extends State<KeyboardPage>
     bufferRevision++;
     final previousSelection = lastSelection;
     lastSelection = text.selection;
-    // Flutter normalizes an invalid selection when focus first arrives. A
-    // later valid selection change comes from editing, not initial focus.
-    if (!changingBuffer &&
+    final selectionChanged =
         previousSelection.isValid &&
         text.selection.isValid &&
-        previousSelection != text.selection) {
+        previousSelection != text.selection;
+    // Flutter normalizes an invalid selection when focus first arrives. A
+    // later valid selection change comes from editing, not initial focus.
+    if (!changingBuffer && selectionChanged) {
       entryUntouched = false;
       if (live) editedLive = true;
     }
@@ -140,7 +145,7 @@ class KeyboardPageState extends State<KeyboardPage>
       setState(() => sensitiveDraft = false);
     }
     // Some IMEs commit without changing the text. onChanged alone misses it.
-    if (committed && !changingBuffer) schedule();
+    if ((committed || selectionChanged) && !changingBuffer) schedule();
   }
 
   void replaceBuffer(TextEditingValue value) {
@@ -292,6 +297,7 @@ class KeyboardPageState extends State<KeyboardPage>
         ),
       );
       lastSubmittedText = editor.text;
+      lastSubmittedSelection = text.selection;
     }
   }
 
@@ -403,6 +409,10 @@ class KeyboardPageState extends State<KeyboardPage>
     if (target == null || editor == null) return false;
     final fieldRevision = editor.revision;
     final reportedText = editor.text;
+    final reportedSelection = TextSelection(
+      baseOffset: editor.start.clamp(0, editor.text.length),
+      extentOffset: editor.end.clamp(0, editor.text.length),
+    );
     final value = text.text;
     final epoch = modeEpoch;
     setState(() => finishing = true);
@@ -433,6 +443,7 @@ class KeyboardPageState extends State<KeyboardPage>
     revision = fieldRevision;
     lastEditorRevision = fieldRevision;
     lastSubmittedText = reportedText;
+    lastSubmittedSelection = reportedSelection;
     lastObservedText = reportedText;
     submittedEditor = null;
     live = true;
@@ -472,15 +483,20 @@ class KeyboardPageState extends State<KeyboardPage>
     activeSend = request;
     final sentRevision = revision;
     setState(() => sending = true);
-    final value = text.text;
+    final value = text.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
     final sentContext = draftContext;
     final result = await widget.model.command(
       CommandKind.text,
       origin: captured,
-      value: value,
+      value: value.text,
       replaceText: replace,
       privateText: sensitive,
       editorRevision: replace ? revision : widget.model.state?.editor?.revision,
+      selectionStart: replace ? selection.baseOffset : null,
+      selectionEnd: replace ? selection.extentOffset : null,
     );
     if (mounted) {
       if (activeSend != request ||
@@ -497,14 +513,15 @@ class KeyboardPageState extends State<KeyboardPage>
         if (replace &&
             (result?.delivery == Delivery.sent ||
                 result?.delivery == Delivery.confirmed)) {
-          lastSubmittedText = value;
+          lastSubmittedText = value.text;
+          lastSubmittedSelection = selection;
         }
         if (!replace &&
             result?.delivery == Delivery.confirmed &&
             origin?.deviceId == captured.deviceId &&
             origin?.sessionId == captured.sessionId &&
             draftContext == sentContext &&
-            text.text == value) {
+            text.text == value.text) {
           replaceBuffer(TextEditingValue.empty);
           keepCompose();
         }
@@ -513,7 +530,8 @@ class KeyboardPageState extends State<KeyboardPage>
           live &&
           (result?.delivery == Delivery.sent ||
               result?.delivery == Delivery.confirmed) &&
-          text.text != value) {
+          (text.text != value.text ||
+              text.selection.isValid && text.selection != selection)) {
         schedule();
       }
       if (replace &&
