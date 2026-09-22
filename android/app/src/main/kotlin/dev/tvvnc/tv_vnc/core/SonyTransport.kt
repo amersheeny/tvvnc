@@ -1,6 +1,7 @@
 package dev.tvvnc.tv_vnc.core
 
 import dev.tvvnc.tv_vnc.bridge.*
+import io.github.ddagunts.screencast.androidtv.CommandNotSent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -13,12 +14,15 @@ import java.util.concurrent.atomic.AtomicLong
 class SonyError(val method: String, val status: Int) : IOException("sony_$status")
 data class SonySnapshot(
     val available: Boolean = false, val power: String? = null, val model: String? = null,
-    val firmware: String? = null, val mac: String? = null, val volume: Long? = null,
-    val maximumVolume: Long? = null, val muted: Boolean? = null, val currentInput: String? = null,
+    val firmware: String? = null, val mac: String? = null, val audio: SonyVolume? = null,
+    val currentInput: String? = null,
     val buttons: List<TvButton> = emptyList(), val inputs: List<TvInput> = emptyList(),
     val apps: List<TvApplication> = emptyList(), val methods: Map<String, String> = emptyMap(),
     val errors: Map<String, String> = emptyMap(), val latencyMs: Long? = null,
 ) {
+    val volume: Long? get() = audio?.level
+    val maximumVolume: Long? get() = audio?.maximum
+    val muted: Boolean? get() = audio?.muted
     fun availability(observed: Boolean): Availability = when {
         errors.values.any { it == "authentication_required" } -> Availability.NEEDS_SETUP
         power != null || available -> Availability.READY
@@ -115,11 +119,13 @@ class SonyTransport(private val host: String, psk: () -> String?, cookie: () -> 
         // Standby queries must not open app/capture sessions or accidentally wake.
         if (power != "standby" && !powerOnly) {
             val volumes = query("audio", "getVolumeInformation")?.optJSONArray(0)
-            val volume = volumes?.let { items -> (0 until items.length()).mapNotNull { items.optJSONObject(it) }
-                .firstOrNull { it.optString("target") == "speaker" } ?: items.optJSONObject(0) }
-            next = next.copy(volume = volume?.text("volume")?.toLongOrNull(),
-                maximumVolume = volume?.optLong("maxVolume", 100),
-                muted = if (volume?.has("mute") == true) volume.optBoolean("mute") else null)
+            val volume = volumes?.let { items -> SonyVolume.select((0 until items.length()).mapNotNull { index ->
+                val item = items.optJSONObject(index) ?: return@mapNotNull null
+                val target = item.text("target") ?: return@mapNotNull null
+                SonyVolume(target, item.text("volume")?.toLongOrNull(), item.text("minVolume")?.toLongOrNull(),
+                    item.text("maxVolume")?.toLongOrNull(), (item.opt("mute") as? Boolean))
+            }) }
+            next = next.copy(audio = volume)
             val content = query("avContent", "getPlayingContentInfo")?.optJSONObject(0)
             next = next.copy(currentInput = content?.text("uri"))
             if (includeCatalogs || state.power != "on" && power == "active") {
@@ -171,9 +177,10 @@ class SonyTransport(private val host: String, psk: () -> String?, cookie: () -> 
         else ircc(command(if (on) "WakeUp" else "PowerOff") ?: throw LocalRequestError("unsupported"))
     }
     suspend fun mute(muted: Boolean) { call("audio", "setAudioMute", JSONArray().put(JSONObject().put("status", muted))) }
-    suspend fun volume(level: Int) {
-        require(level in 0..(state.maximumVolume ?: 100).toInt())
-        call("audio", "setAudioVolume", JSONArray().put(JSONObject().put("target", "speaker").put("volume", level.toString())))
+    suspend fun volume(level: Int, expected: SonyVolume = state.audio ?: throw CommandNotSent("unsupported")) {
+        val request = expected.request(level)
+        if (state.audio?.context != expected.context) throw CommandNotSent("audio_output_changed")
+        call("audio", "setAudioVolume", JSONArray().put(JSONObject(request)))
     }
     suspend fun input(uri: String) {
         require(state.inputs.any { it.uri == uri })

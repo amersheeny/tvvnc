@@ -9,7 +9,7 @@ import javax.net.ssl.SSLHandshakeException
 
 class PairingAndStatusTest {
     @Test fun observedSonyAuthenticationFailureOutranksReadablePower() {
-        val state = SonySnapshot(available = true, power = "on", volume = 22,
+        val state = SonySnapshot(available = true, power = "on", audio = SonyVolume("speaker", 22, null, null, null),
             errors = mapOf("appControl.getApplicationList" to "authentication_required"))
         assertEquals(Availability.NEEDS_SETUP, state.availability(true))
         assertEquals("on", state.power)
