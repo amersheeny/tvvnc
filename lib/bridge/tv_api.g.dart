@@ -127,6 +127,7 @@ enum CommandKind {
   volume,
   reboot,
   paste,
+  editorAction,
 }
 
 enum Availability {
@@ -830,6 +831,10 @@ class EditorInfo {
     required this.start,
     required this.end,
     required this.revision,
+    this.inputType,
+    this.imeOptions,
+    this.actionId,
+    this.actionLabel,
   });
 
   String application;
@@ -844,8 +849,27 @@ class EditorInfo {
 
   int revision;
 
+  int? inputType;
+
+  int? imeOptions;
+
+  int? actionId;
+
+  String? actionLabel;
+
   List<Object?> _toList() {
-    return <Object?>[application, label, text, start, end, revision];
+    return <Object?>[
+      application,
+      label,
+      text,
+      start,
+      end,
+      revision,
+      inputType,
+      imeOptions,
+      actionId,
+      actionLabel,
+    ];
   }
 
   Object encode() {
@@ -861,6 +885,10 @@ class EditorInfo {
       start: result[3]! as int,
       end: result[4]! as int,
       revision: result[5]! as int,
+      inputType: result[6] as int?,
+      imeOptions: result[7] as int?,
+      actionId: result[8] as int?,
+      actionLabel: result[9] as String?,
     );
   }
 
@@ -878,7 +906,11 @@ class EditorInfo {
         _deepEquals(text, other.text) &&
         _deepEquals(start, other.start) &&
         _deepEquals(end, other.end) &&
-        _deepEquals(revision, other.revision);
+        _deepEquals(revision, other.revision) &&
+        _deepEquals(inputType, other.inputType) &&
+        _deepEquals(imeOptions, other.imeOptions) &&
+        _deepEquals(actionId, other.actionId) &&
+        _deepEquals(actionLabel, other.actionLabel);
   }
 
   @override
@@ -887,7 +919,7 @@ class EditorInfo {
 
   @override
   String toString() {
-    return 'EditorInfo(application: $application, label: $label, text: $text, start: $start, end: $end, revision: $revision)';
+    return 'EditorInfo(application: $application, label: $label, text: $text, start: $start, end: $end, revision: $revision, inputType: $inputType, imeOptions: $imeOptions, actionId: $actionId, actionLabel: $actionLabel)';
   }
 }
 

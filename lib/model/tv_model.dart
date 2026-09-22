@@ -249,7 +249,7 @@ class TvModel extends ChangeNotifier implements TvFlutterApi {
         ),
       );
       if (!_isCurrent(captured)) return result;
-      if (kind == CommandKind.text &&
+      if ((kind == CommandKind.text || kind == CommandKind.editorAction) &&
           editorRevision != null &&
           state?.editor?.revision != editorRevision) {
         return result;

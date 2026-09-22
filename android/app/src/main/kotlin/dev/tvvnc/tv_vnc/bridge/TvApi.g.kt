@@ -216,7 +216,8 @@ enum class CommandKind(val raw: Int) {
   UNMUTE(11),
   VOLUME(12),
   REBOOT(13),
-  PASTE(14);
+  PASTE(14),
+  EDITOR_ACTION(15);
 
   companion object {
     fun ofRaw(raw: Int): CommandKind? {
@@ -829,7 +830,11 @@ data class EditorInfo (
   val text: String,
   val start: Long,
   val end: Long,
-  val revision: Long
+  val revision: Long,
+  val inputType: Long? = null,
+  val imeOptions: Long? = null,
+  val actionId: Long? = null,
+  val actionLabel: String? = null
 )
  {
   companion object {
@@ -840,7 +845,11 @@ data class EditorInfo (
       val start = pigeonVar_list[3] as Long
       val end = pigeonVar_list[4] as Long
       val revision = pigeonVar_list[5] as Long
-      return EditorInfo(application, label, text, start, end, revision)
+      val inputType = pigeonVar_list[6] as Long?
+      val imeOptions = pigeonVar_list[7] as Long?
+      val actionId = pigeonVar_list[8] as Long?
+      val actionLabel = pigeonVar_list[9] as String?
+      return EditorInfo(application, label, text, start, end, revision, inputType, imeOptions, actionId, actionLabel)
     }
   }
   fun toList(): List<Any?> {
@@ -851,6 +860,10 @@ data class EditorInfo (
       start,
       end,
       revision,
+      inputType,
+      imeOptions,
+      actionId,
+      actionLabel,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -861,7 +874,7 @@ data class EditorInfo (
       return true
     }
     val other = other as EditorInfo
-    return TvApiPigeonUtils.deepEquals(this.application, other.application) && TvApiPigeonUtils.deepEquals(this.label, other.label) && TvApiPigeonUtils.deepEquals(this.text, other.text) && TvApiPigeonUtils.deepEquals(this.start, other.start) && TvApiPigeonUtils.deepEquals(this.end, other.end) && TvApiPigeonUtils.deepEquals(this.revision, other.revision)
+    return TvApiPigeonUtils.deepEquals(this.application, other.application) && TvApiPigeonUtils.deepEquals(this.label, other.label) && TvApiPigeonUtils.deepEquals(this.text, other.text) && TvApiPigeonUtils.deepEquals(this.start, other.start) && TvApiPigeonUtils.deepEquals(this.end, other.end) && TvApiPigeonUtils.deepEquals(this.revision, other.revision) && TvApiPigeonUtils.deepEquals(this.inputType, other.inputType) && TvApiPigeonUtils.deepEquals(this.imeOptions, other.imeOptions) && TvApiPigeonUtils.deepEquals(this.actionId, other.actionId) && TvApiPigeonUtils.deepEquals(this.actionLabel, other.actionLabel)
   }
 
   override fun hashCode(): Int {
@@ -872,10 +885,14 @@ data class EditorInfo (
     result = 31 * result + TvApiPigeonUtils.deepHash(this.start)
     result = 31 * result + TvApiPigeonUtils.deepHash(this.end)
     result = 31 * result + TvApiPigeonUtils.deepHash(this.revision)
+    result = 31 * result + TvApiPigeonUtils.deepHash(this.inputType)
+    result = 31 * result + TvApiPigeonUtils.deepHash(this.imeOptions)
+    result = 31 * result + TvApiPigeonUtils.deepHash(this.actionId)
+    result = 31 * result + TvApiPigeonUtils.deepHash(this.actionLabel)
     return result
   }
   override fun toString(): String {
-    return "EditorInfo(application=$application, label=$label, text=$text, start=$start, end=$end, revision=$revision)"
+    return "EditorInfo(application=$application, label=$label, text=$text, start=$start, end=$end, revision=$revision, inputType=$inputType, imeOptions=$imeOptions, actionId=$actionId, actionLabel=$actionLabel)"
   }
 }
 

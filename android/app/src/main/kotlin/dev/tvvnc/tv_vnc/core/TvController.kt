@@ -642,7 +642,7 @@ class TvController(private val context: Context, private val textures: TextureRe
                 return r.connected && when (command.kind) {
                     CommandKind.KEY -> r.supportsKey(command.code?.toInt())
                     CommandKind.KEY_DOWN, CommandKind.KEY_UP, CommandKind.POWER_TOGGLE -> r.keysReady
-                    CommandKind.TEXT -> r.features and NativeRemoteSession.IME != 0
+                    CommandKind.TEXT, CommandKind.EDITOR_ACTION -> r.features and NativeRemoteSession.IME != 0
                     CommandKind.VOLUME -> r.volumeSetReady
                     CommandKind.MUTE, CommandKind.UNMUTE -> r.volumeAdjustReady
                     CommandKind.SONY -> equivalent(command)?.let { r.supportsKey(it.code) } == true
@@ -666,6 +666,7 @@ class TvController(private val context: Context, private val textures: TextureRe
                     CommandKind.TEXT -> remote.text(command.value.orEmpty(), command.replaceText, command.editorRevision, expectedConnection,
                         command.selectionStart?.coerceIn(0, Int.MAX_VALUE.toLong())?.toInt(),
                         command.selectionEnd?.coerceIn(0, Int.MAX_VALUE.toLong())?.toInt())
+                    CommandKind.EDITOR_ACTION -> remote.submit(command.editorRevision, expectedConnection)
                     CommandKind.SONY -> remote.key(equivalent(command)!!.code, expectedConnection = expectedConnection)
                     CommandKind.APP -> {
                         val uri = URI(command.value.orEmpty())
@@ -864,7 +865,8 @@ class TvController(private val context: Context, private val textures: TextureRe
                 if (nativeVolume) r.maximumVolume?.toLong() else s.maximumVolume,
                 if (r.volumeAdjustReady) r.muted else s.muted,
                 s.model ?: r.model.takeIf { it.isNotBlank() }, s.firmware, r.serviceVersion.takeIf { it.isNotBlank() }, profile.mac ?: s.mac,
-                r.editor?.let { EditorInfo(it.application, it.label, it.text, it.start.toLong(), it.end.toLong(), it.revision) }, screen,
+                r.editor?.let { EditorInfo(it.application, it.label, it.text, it.start.toLong(), it.end.toLong(), it.revision,
+                    it.inputType?.toLong(), it.imeOptions?.toLong(), it.actionId?.toLong(), it.actionLabel) }, screen,
                 listOf(TransportInfo("sony", sonyStatus, sonyAt, s.errors.values.firstOrNull(), s.latencyMs),
                     TransportInfo("remote", liveRemoteStatus, remoteAt, remoteError, null),
                     TransportInfo("vnc", if (screen.connected) Availability.READY else if (screen.errorCode == "authentication_required") Availability.NEEDS_SETUP else Availability.UNAVAILABLE,

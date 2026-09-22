@@ -6,7 +6,7 @@ import 'package:pigeon/pigeon.dart';
   kotlinOptions: KotlinOptions(package: 'dev.tvvnc.tv_vnc.bridge'),
 ))
 enum CommandKind { key, keyDown, keyUp, sony, text, input, app, powerOn, powerOff,
-  powerToggle, mute, unmute, volume, reboot, paste }
+  powerToggle, mute, unmute, volume, reboot, paste, editorAction }
 enum Availability { unknown, advertised, needsSetup, permissionRequired, ready,
   unavailable, unsupported }
 enum Delivery { notSent, rejected, sent, confirmed, unknown, queued }
@@ -109,13 +109,18 @@ class TransportInfo {
 }
 class EditorInfo {
   EditorInfo({required this.application, required this.label, required this.text,
-    required this.start, required this.end, required this.revision});
+    required this.start, required this.end, required this.revision,
+    this.inputType, this.imeOptions, this.actionId, this.actionLabel});
   String application;
   String label;
   String text;
   int start;
   int end;
   int revision;
+  int? inputType;
+  int? imeOptions;
+  int? actionId;
+  String? actionLabel;
 }
 class ScreenInfo {
   ScreenInfo({this.textureId, this.width = 0, this.height = 0,
