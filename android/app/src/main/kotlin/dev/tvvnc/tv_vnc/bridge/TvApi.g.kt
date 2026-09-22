@@ -994,7 +994,8 @@ data class SessionSnapshot (
   val sequence: Long? = null,
   val networkPermissionGranted: Boolean? = null,
   val volumeMin: Long? = null,
-  val volumeContext: String? = null
+  val volumeContext: String? = null,
+  val volumeTarget: String? = null
 )
  {
   companion object {
@@ -1028,7 +1029,8 @@ data class SessionSnapshot (
       val networkPermissionGranted = pigeonVar_list[26] as Boolean?
       val volumeMin = pigeonVar_list[27] as Long?
       val volumeContext = pigeonVar_list[28] as String?
-      return SessionSnapshot(deviceId, sessionId, power, currentInput, currentApp, volume, volumeMax, muted, model, firmware, remoteVersion, mac, editor, screen, transports, capabilities, buttons, inputs, apps, voiceState, pairingState, connectionStage, macroId, macroStep, errorCode, sequence, networkPermissionGranted, volumeMin, volumeContext)
+      val volumeTarget = pigeonVar_list[29] as String?
+      return SessionSnapshot(deviceId, sessionId, power, currentInput, currentApp, volume, volumeMax, muted, model, firmware, remoteVersion, mac, editor, screen, transports, capabilities, buttons, inputs, apps, voiceState, pairingState, connectionStage, macroId, macroStep, errorCode, sequence, networkPermissionGranted, volumeMin, volumeContext, volumeTarget)
     }
   }
   fun toList(): List<Any?> {
@@ -1062,6 +1064,7 @@ data class SessionSnapshot (
       networkPermissionGranted,
       volumeMin,
       volumeContext,
+      volumeTarget,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -1072,7 +1075,7 @@ data class SessionSnapshot (
       return true
     }
     val other = other as SessionSnapshot
-    return TvApiPigeonUtils.deepEquals(this.deviceId, other.deviceId) && TvApiPigeonUtils.deepEquals(this.sessionId, other.sessionId) && TvApiPigeonUtils.deepEquals(this.power, other.power) && TvApiPigeonUtils.deepEquals(this.currentInput, other.currentInput) && TvApiPigeonUtils.deepEquals(this.currentApp, other.currentApp) && TvApiPigeonUtils.deepEquals(this.volume, other.volume) && TvApiPigeonUtils.deepEquals(this.volumeMax, other.volumeMax) && TvApiPigeonUtils.deepEquals(this.muted, other.muted) && TvApiPigeonUtils.deepEquals(this.model, other.model) && TvApiPigeonUtils.deepEquals(this.firmware, other.firmware) && TvApiPigeonUtils.deepEquals(this.remoteVersion, other.remoteVersion) && TvApiPigeonUtils.deepEquals(this.mac, other.mac) && TvApiPigeonUtils.deepEquals(this.editor, other.editor) && TvApiPigeonUtils.deepEquals(this.screen, other.screen) && TvApiPigeonUtils.deepEquals(this.transports, other.transports) && TvApiPigeonUtils.deepEquals(this.capabilities, other.capabilities) && TvApiPigeonUtils.deepEquals(this.buttons, other.buttons) && TvApiPigeonUtils.deepEquals(this.inputs, other.inputs) && TvApiPigeonUtils.deepEquals(this.apps, other.apps) && TvApiPigeonUtils.deepEquals(this.voiceState, other.voiceState) && TvApiPigeonUtils.deepEquals(this.pairingState, other.pairingState) && TvApiPigeonUtils.deepEquals(this.connectionStage, other.connectionStage) && TvApiPigeonUtils.deepEquals(this.macroId, other.macroId) && TvApiPigeonUtils.deepEquals(this.macroStep, other.macroStep) && TvApiPigeonUtils.deepEquals(this.errorCode, other.errorCode) && TvApiPigeonUtils.deepEquals(this.sequence, other.sequence) && TvApiPigeonUtils.deepEquals(this.networkPermissionGranted, other.networkPermissionGranted) && TvApiPigeonUtils.deepEquals(this.volumeMin, other.volumeMin) && TvApiPigeonUtils.deepEquals(this.volumeContext, other.volumeContext)
+    return TvApiPigeonUtils.deepEquals(this.deviceId, other.deviceId) && TvApiPigeonUtils.deepEquals(this.sessionId, other.sessionId) && TvApiPigeonUtils.deepEquals(this.power, other.power) && TvApiPigeonUtils.deepEquals(this.currentInput, other.currentInput) && TvApiPigeonUtils.deepEquals(this.currentApp, other.currentApp) && TvApiPigeonUtils.deepEquals(this.volume, other.volume) && TvApiPigeonUtils.deepEquals(this.volumeMax, other.volumeMax) && TvApiPigeonUtils.deepEquals(this.muted, other.muted) && TvApiPigeonUtils.deepEquals(this.model, other.model) && TvApiPigeonUtils.deepEquals(this.firmware, other.firmware) && TvApiPigeonUtils.deepEquals(this.remoteVersion, other.remoteVersion) && TvApiPigeonUtils.deepEquals(this.mac, other.mac) && TvApiPigeonUtils.deepEquals(this.editor, other.editor) && TvApiPigeonUtils.deepEquals(this.screen, other.screen) && TvApiPigeonUtils.deepEquals(this.transports, other.transports) && TvApiPigeonUtils.deepEquals(this.capabilities, other.capabilities) && TvApiPigeonUtils.deepEquals(this.buttons, other.buttons) && TvApiPigeonUtils.deepEquals(this.inputs, other.inputs) && TvApiPigeonUtils.deepEquals(this.apps, other.apps) && TvApiPigeonUtils.deepEquals(this.voiceState, other.voiceState) && TvApiPigeonUtils.deepEquals(this.pairingState, other.pairingState) && TvApiPigeonUtils.deepEquals(this.connectionStage, other.connectionStage) && TvApiPigeonUtils.deepEquals(this.macroId, other.macroId) && TvApiPigeonUtils.deepEquals(this.macroStep, other.macroStep) && TvApiPigeonUtils.deepEquals(this.errorCode, other.errorCode) && TvApiPigeonUtils.deepEquals(this.sequence, other.sequence) && TvApiPigeonUtils.deepEquals(this.networkPermissionGranted, other.networkPermissionGranted) && TvApiPigeonUtils.deepEquals(this.volumeMin, other.volumeMin) && TvApiPigeonUtils.deepEquals(this.volumeContext, other.volumeContext) && TvApiPigeonUtils.deepEquals(this.volumeTarget, other.volumeTarget)
   }
 
   override fun hashCode(): Int {
@@ -1106,10 +1109,11 @@ data class SessionSnapshot (
     result = 31 * result + TvApiPigeonUtils.deepHash(this.networkPermissionGranted)
     result = 31 * result + TvApiPigeonUtils.deepHash(this.volumeMin)
     result = 31 * result + TvApiPigeonUtils.deepHash(this.volumeContext)
+    result = 31 * result + TvApiPigeonUtils.deepHash(this.volumeTarget)
     return result
   }
   override fun toString(): String {
-    return "SessionSnapshot(deviceId=$deviceId, sessionId=$sessionId, power=$power, currentInput=$currentInput, currentApp=$currentApp, volume=$volume, volumeMax=$volumeMax, muted=$muted, model=$model, firmware=$firmware, remoteVersion=$remoteVersion, mac=$mac, editor=$editor, screen=$screen, transports=$transports, capabilities=$capabilities, buttons=$buttons, inputs=$inputs, apps=$apps, voiceState=$voiceState, pairingState=$pairingState, connectionStage=$connectionStage, macroId=$macroId, macroStep=$macroStep, errorCode=$errorCode, sequence=$sequence, networkPermissionGranted=$networkPermissionGranted, volumeMin=$volumeMin, volumeContext=$volumeContext)"
+    return "SessionSnapshot(deviceId=$deviceId, sessionId=$sessionId, power=$power, currentInput=$currentInput, currentApp=$currentApp, volume=$volume, volumeMax=$volumeMax, muted=$muted, model=$model, firmware=$firmware, remoteVersion=$remoteVersion, mac=$mac, editor=$editor, screen=$screen, transports=$transports, capabilities=$capabilities, buttons=$buttons, inputs=$inputs, apps=$apps, voiceState=$voiceState, pairingState=$pairingState, connectionStage=$connectionStage, macroId=$macroId, macroStep=$macroStep, errorCode=$errorCode, sequence=$sequence, networkPermissionGranted=$networkPermissionGranted, volumeMin=$volumeMin, volumeContext=$volumeContext, volumeTarget=$volumeTarget)"
   }
 }
 
@@ -1125,7 +1129,9 @@ data class TvCommand (
   val editorRevision: Long? = null,
   val replaceText: Boolean,
   val userConfirmed: Boolean,
-  val privateText: Boolean
+  val privateText: Boolean,
+  val selectionStart: Long? = null,
+  val selectionEnd: Long? = null
 )
  {
   companion object {
@@ -1141,7 +1147,9 @@ data class TvCommand (
       val replaceText = pigeonVar_list[8] as Boolean
       val userConfirmed = pigeonVar_list[9] as Boolean
       val privateText = pigeonVar_list[10] as Boolean
-      return TvCommand(deviceId, sessionId, kind, code, value, number, pressId, editorRevision, replaceText, userConfirmed, privateText)
+      val selectionStart = pigeonVar_list[11] as Long?
+      val selectionEnd = pigeonVar_list[12] as Long?
+      return TvCommand(deviceId, sessionId, kind, code, value, number, pressId, editorRevision, replaceText, userConfirmed, privateText, selectionStart, selectionEnd)
     }
   }
   fun toList(): List<Any?> {
@@ -1157,6 +1165,8 @@ data class TvCommand (
       replaceText,
       userConfirmed,
       privateText,
+      selectionStart,
+      selectionEnd,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -1167,7 +1177,7 @@ data class TvCommand (
       return true
     }
     val other = other as TvCommand
-    return TvApiPigeonUtils.deepEquals(this.deviceId, other.deviceId) && TvApiPigeonUtils.deepEquals(this.sessionId, other.sessionId) && TvApiPigeonUtils.deepEquals(this.kind, other.kind) && TvApiPigeonUtils.deepEquals(this.code, other.code) && TvApiPigeonUtils.deepEquals(this.value, other.value) && TvApiPigeonUtils.deepEquals(this.number, other.number) && TvApiPigeonUtils.deepEquals(this.pressId, other.pressId) && TvApiPigeonUtils.deepEquals(this.editorRevision, other.editorRevision) && TvApiPigeonUtils.deepEquals(this.replaceText, other.replaceText) && TvApiPigeonUtils.deepEquals(this.userConfirmed, other.userConfirmed) && TvApiPigeonUtils.deepEquals(this.privateText, other.privateText)
+    return TvApiPigeonUtils.deepEquals(this.deviceId, other.deviceId) && TvApiPigeonUtils.deepEquals(this.sessionId, other.sessionId) && TvApiPigeonUtils.deepEquals(this.kind, other.kind) && TvApiPigeonUtils.deepEquals(this.code, other.code) && TvApiPigeonUtils.deepEquals(this.value, other.value) && TvApiPigeonUtils.deepEquals(this.number, other.number) && TvApiPigeonUtils.deepEquals(this.pressId, other.pressId) && TvApiPigeonUtils.deepEquals(this.editorRevision, other.editorRevision) && TvApiPigeonUtils.deepEquals(this.replaceText, other.replaceText) && TvApiPigeonUtils.deepEquals(this.userConfirmed, other.userConfirmed) && TvApiPigeonUtils.deepEquals(this.privateText, other.privateText) && TvApiPigeonUtils.deepEquals(this.selectionStart, other.selectionStart) && TvApiPigeonUtils.deepEquals(this.selectionEnd, other.selectionEnd)
   }
 
   override fun hashCode(): Int {
@@ -1183,10 +1193,12 @@ data class TvCommand (
     result = 31 * result + TvApiPigeonUtils.deepHash(this.replaceText)
     result = 31 * result + TvApiPigeonUtils.deepHash(this.userConfirmed)
     result = 31 * result + TvApiPigeonUtils.deepHash(this.privateText)
+    result = 31 * result + TvApiPigeonUtils.deepHash(this.selectionStart)
+    result = 31 * result + TvApiPigeonUtils.deepHash(this.selectionEnd)
     return result
   }
   override fun toString(): String {
-    return "TvCommand(deviceId=$deviceId, sessionId=$sessionId, kind=$kind, code=$code, value=$value, number=$number, pressId=$pressId, editorRevision=$editorRevision, replaceText=$replaceText, userConfirmed=$userConfirmed, privateText=$privateText)"
+    return "TvCommand(deviceId=$deviceId, sessionId=$sessionId, kind=$kind, code=$code, value=$value, number=$number, pressId=$pressId, editorRevision=$editorRevision, replaceText=$replaceText, userConfirmed=$userConfirmed, privateText=$privateText, selectionStart=$selectionStart, selectionEnd=$selectionEnd)"
   }
 }
 

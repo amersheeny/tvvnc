@@ -143,7 +143,7 @@ class SessionSnapshot {
     required this.transports, required this.capabilities, required this.buttons,
     required this.inputs, required this.apps, this.voiceState = 'idle',
     this.pairingState = 'idle', this.connectionStage = 'disconnected', this.macroId, this.macroStep, this.errorCode, this.sequence, this.networkPermissionGranted,
-    this.volumeMin, this.volumeContext});
+    this.volumeMin, this.volumeContext, this.volumeTarget});
   String? deviceId;
   int sessionId;
   String? power;
@@ -173,11 +173,12 @@ class SessionSnapshot {
   bool? networkPermissionGranted;
   int? volumeMin;
   String? volumeContext;
+  String? volumeTarget;
 }
 class TvCommand {
   TvCommand({required this.deviceId, required this.sessionId, required this.kind, this.code, this.value, this.number,
     this.pressId, this.editorRevision, this.replaceText = false,
-    this.userConfirmed = false, this.privateText = false});
+    this.userConfirmed = false, this.privateText = false, this.selectionStart, this.selectionEnd});
   String deviceId;
   int sessionId;
   CommandKind kind;
@@ -189,6 +190,8 @@ class TvCommand {
   bool replaceText;
   bool userConfirmed;
   bool privateText;
+  int? selectionStart;
+  int? selectionEnd;
 }
 class CommandOutcome {
   CommandOutcome({required this.delivery, this.transport, this.errorCode});

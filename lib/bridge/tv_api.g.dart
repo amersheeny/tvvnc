@@ -1040,6 +1040,7 @@ class SessionSnapshot {
     this.networkPermissionGranted,
     this.volumeMin,
     this.volumeContext,
+    this.volumeTarget,
   });
 
   String? deviceId;
@@ -1100,6 +1101,8 @@ class SessionSnapshot {
 
   String? volumeContext;
 
+  String? volumeTarget;
+
   List<Object?> _toList() {
     return <Object?>[
       deviceId,
@@ -1131,6 +1134,7 @@ class SessionSnapshot {
       networkPermissionGranted,
       volumeMin,
       volumeContext,
+      volumeTarget,
     ];
   }
 
@@ -1170,6 +1174,7 @@ class SessionSnapshot {
       networkPermissionGranted: result[26] as bool?,
       volumeMin: result[27] as int?,
       volumeContext: result[28] as String?,
+      volumeTarget: result[29] as String?,
     );
   }
 
@@ -1210,7 +1215,8 @@ class SessionSnapshot {
         _deepEquals(sequence, other.sequence) &&
         _deepEquals(networkPermissionGranted, other.networkPermissionGranted) &&
         _deepEquals(volumeMin, other.volumeMin) &&
-        _deepEquals(volumeContext, other.volumeContext);
+        _deepEquals(volumeContext, other.volumeContext) &&
+        _deepEquals(volumeTarget, other.volumeTarget);
   }
 
   @override
@@ -1219,7 +1225,7 @@ class SessionSnapshot {
 
   @override
   String toString() {
-    return 'SessionSnapshot(deviceId: $deviceId, sessionId: $sessionId, power: $power, currentInput: $currentInput, currentApp: $currentApp, volume: $volume, volumeMax: $volumeMax, muted: $muted, model: $model, firmware: $firmware, remoteVersion: $remoteVersion, mac: $mac, editor: $editor, screen: $screen, transports: $transports, capabilities: $capabilities, buttons: $buttons, inputs: $inputs, apps: $apps, voiceState: $voiceState, pairingState: $pairingState, connectionStage: $connectionStage, macroId: $macroId, macroStep: $macroStep, errorCode: $errorCode, sequence: $sequence, networkPermissionGranted: $networkPermissionGranted, volumeMin: $volumeMin, volumeContext: $volumeContext)';
+    return 'SessionSnapshot(deviceId: $deviceId, sessionId: $sessionId, power: $power, currentInput: $currentInput, currentApp: $currentApp, volume: $volume, volumeMax: $volumeMax, muted: $muted, model: $model, firmware: $firmware, remoteVersion: $remoteVersion, mac: $mac, editor: $editor, screen: $screen, transports: $transports, capabilities: $capabilities, buttons: $buttons, inputs: $inputs, apps: $apps, voiceState: $voiceState, pairingState: $pairingState, connectionStage: $connectionStage, macroId: $macroId, macroStep: $macroStep, errorCode: $errorCode, sequence: $sequence, networkPermissionGranted: $networkPermissionGranted, volumeMin: $volumeMin, volumeContext: $volumeContext, volumeTarget: $volumeTarget)';
   }
 }
 
@@ -1236,6 +1242,8 @@ class TvCommand {
     this.replaceText = false,
     this.userConfirmed = false,
     this.privateText = false,
+    this.selectionStart,
+    this.selectionEnd,
   });
 
   String deviceId;
@@ -1260,6 +1268,10 @@ class TvCommand {
 
   bool privateText;
 
+  int? selectionStart;
+
+  int? selectionEnd;
+
   List<Object?> _toList() {
     return <Object?>[
       deviceId,
@@ -1273,6 +1285,8 @@ class TvCommand {
       replaceText,
       userConfirmed,
       privateText,
+      selectionStart,
+      selectionEnd,
     ];
   }
 
@@ -1294,6 +1308,8 @@ class TvCommand {
       replaceText: result[8]! as bool,
       userConfirmed: result[9]! as bool,
       privateText: result[10]! as bool,
+      selectionStart: result[11] as int?,
+      selectionEnd: result[12] as int?,
     );
   }
 
@@ -1316,7 +1332,9 @@ class TvCommand {
         _deepEquals(editorRevision, other.editorRevision) &&
         _deepEquals(replaceText, other.replaceText) &&
         _deepEquals(userConfirmed, other.userConfirmed) &&
-        _deepEquals(privateText, other.privateText);
+        _deepEquals(privateText, other.privateText) &&
+        _deepEquals(selectionStart, other.selectionStart) &&
+        _deepEquals(selectionEnd, other.selectionEnd);
   }
 
   @override
@@ -1325,7 +1343,7 @@ class TvCommand {
 
   @override
   String toString() {
-    return 'TvCommand(deviceId: $deviceId, sessionId: $sessionId, kind: $kind, code: $code, value: $value, number: $number, pressId: $pressId, editorRevision: $editorRevision, replaceText: $replaceText, userConfirmed: $userConfirmed, privateText: $privateText)';
+    return 'TvCommand(deviceId: $deviceId, sessionId: $sessionId, kind: $kind, code: $code, value: $value, number: $number, pressId: $pressId, editorRevision: $editorRevision, replaceText: $replaceText, userConfirmed: $userConfirmed, privateText: $privateText, selectionStart: $selectionStart, selectionEnd: $selectionEnd)';
   }
 }
 
