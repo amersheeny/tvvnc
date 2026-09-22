@@ -35,6 +35,7 @@ class KeyboardPageState extends State<KeyboardPage>
   bool finishing = false;
   int? submittedEditor;
   String lastSubmittedText = '';
+  String lastObservedText = '';
   Future<bool>? inFlight;
   (bool, bool, bool)? inputMode;
   bool keyboardWasVisible = false;
@@ -78,6 +79,10 @@ class KeyboardPageState extends State<KeyboardPage>
   }
 
   bool get dirtyLive => (live || pausedEdit) && text.text != lastSubmittedText;
+  bool get unobservedLive =>
+      (live || pausedEdit) &&
+      editedLive &&
+      lastObservedText != lastSubmittedText;
   bool get draftConflict =>
       !live &&
       !pausedEdit &&
@@ -103,6 +108,7 @@ class KeyboardPageState extends State<KeyboardPage>
     pausedEdit = false;
     editedLive = false;
     lastSubmittedText = editor.text;
+    lastObservedText = editor.text;
     replaceBuffer(
       TextEditingValue(
         text: editor.text,
@@ -184,7 +190,15 @@ class KeyboardPageState extends State<KeyboardPage>
     final next = widget.model.target;
     final editor = widget.model.state?.editor;
     final oldEditorRevision = lastEditorRevision;
-    final canFollow = !sensitive && !composing && !sending && !dirtyLive;
+    if (next?.deviceId == origin?.deviceId &&
+        next?.sessionId == origin?.sessionId &&
+        draftContext == widget.model.draftContext &&
+        editor != null &&
+        editor.revision == revision) {
+      lastObservedText = editor.text;
+    }
+    final canFollow =
+        !sensitive && !composing && !sending && !dirtyLive && !unobservedLive;
     final contextChanged =
         next?.deviceId != origin?.deviceId ||
         next?.sessionId != origin?.sessionId ||
@@ -319,7 +333,7 @@ class KeyboardPageState extends State<KeyboardPage>
       foreground = false;
       final holdEdit =
           (live || pausedEdit) &&
-          (dirtyLive || sending || composing || pausedEdit);
+          (dirtyLive || unobservedLive || sending || composing || pausedEdit);
       invalidateMode();
       keepCompose();
       if (sensitive) {
@@ -419,6 +433,7 @@ class KeyboardPageState extends State<KeyboardPage>
     revision = fieldRevision;
     lastEditorRevision = fieldRevision;
     lastSubmittedText = reportedText;
+    lastObservedText = reportedText;
     submittedEditor = null;
     live = true;
     pausedEdit = false;
@@ -552,7 +567,7 @@ class KeyboardPageState extends State<KeyboardPage>
     return leave;
   }
 
-  void editLocally(int code, {bool repeat = false}) {
+  void editLocally(int code) {
     if (finishing) return;
     final value = text.value;
     final bounds = <int>[0];
@@ -593,7 +608,7 @@ class KeyboardPageState extends State<KeyboardPage>
       text: value.text.replaceRange(start, end, ''),
       selection: TextSelection.collapsed(offset: start),
     );
-    schedule(repeat: repeat);
+    schedule();
   }
 
   Future<bool> prepareEnterOnTv() async {
@@ -610,6 +625,9 @@ class KeyboardPageState extends State<KeyboardPage>
     submittedEditor = widget.model.state?.editor?.revision;
     invalidateMode();
     setState(() {
+      // Enter explicitly finishes this edit; following the next field is
+      // deliberate, unlike an unsolicited field change during typing.
+      editedLive = false;
       live = false;
       pausedEdit = true;
       followEditor = true;
@@ -620,10 +638,10 @@ class KeyboardPageState extends State<KeyboardPage>
     void stop() => editingRepeat?.cancel();
     void hold() {
       stop();
-      editLocally(code, repeat: true);
+      editLocally(code);
       editingRepeat = Timer.periodic(
         const Duration(milliseconds: 50),
-        (_) => editLocally(code, repeat: true),
+        (_) => editLocally(code),
       );
     }
 
@@ -651,7 +669,7 @@ class KeyboardPageState extends State<KeyboardPage>
     );
   }
 
-  void schedule({bool repeat = false}) {
+  void schedule() {
     entryUntouched = false;
     if (live) editedLive = true;
     keepCompose();
