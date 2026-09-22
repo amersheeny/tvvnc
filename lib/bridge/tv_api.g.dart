@@ -1038,6 +1038,8 @@ class SessionSnapshot {
     this.errorCode,
     this.sequence,
     this.networkPermissionGranted,
+    this.volumeMin,
+    this.volumeContext,
   });
 
   String? deviceId;
@@ -1094,6 +1096,10 @@ class SessionSnapshot {
 
   bool? networkPermissionGranted;
 
+  int? volumeMin;
+
+  String? volumeContext;
+
   List<Object?> _toList() {
     return <Object?>[
       deviceId,
@@ -1123,6 +1129,8 @@ class SessionSnapshot {
       errorCode,
       sequence,
       networkPermissionGranted,
+      volumeMin,
+      volumeContext,
     ];
   }
 
@@ -1160,6 +1168,8 @@ class SessionSnapshot {
       errorCode: result[24] as String?,
       sequence: result[25] as int?,
       networkPermissionGranted: result[26] as bool?,
+      volumeMin: result[27] as int?,
+      volumeContext: result[28] as String?,
     );
   }
 
@@ -1198,7 +1208,9 @@ class SessionSnapshot {
         _deepEquals(macroStep, other.macroStep) &&
         _deepEquals(errorCode, other.errorCode) &&
         _deepEquals(sequence, other.sequence) &&
-        _deepEquals(networkPermissionGranted, other.networkPermissionGranted);
+        _deepEquals(networkPermissionGranted, other.networkPermissionGranted) &&
+        _deepEquals(volumeMin, other.volumeMin) &&
+        _deepEquals(volumeContext, other.volumeContext);
   }
 
   @override
@@ -1207,7 +1219,7 @@ class SessionSnapshot {
 
   @override
   String toString() {
-    return 'SessionSnapshot(deviceId: $deviceId, sessionId: $sessionId, power: $power, currentInput: $currentInput, currentApp: $currentApp, volume: $volume, volumeMax: $volumeMax, muted: $muted, model: $model, firmware: $firmware, remoteVersion: $remoteVersion, mac: $mac, editor: $editor, screen: $screen, transports: $transports, capabilities: $capabilities, buttons: $buttons, inputs: $inputs, apps: $apps, voiceState: $voiceState, pairingState: $pairingState, connectionStage: $connectionStage, macroId: $macroId, macroStep: $macroStep, errorCode: $errorCode, sequence: $sequence, networkPermissionGranted: $networkPermissionGranted)';
+    return 'SessionSnapshot(deviceId: $deviceId, sessionId: $sessionId, power: $power, currentInput: $currentInput, currentApp: $currentApp, volume: $volume, volumeMax: $volumeMax, muted: $muted, model: $model, firmware: $firmware, remoteVersion: $remoteVersion, mac: $mac, editor: $editor, screen: $screen, transports: $transports, capabilities: $capabilities, buttons: $buttons, inputs: $inputs, apps: $apps, voiceState: $voiceState, pairingState: $pairingState, connectionStage: $connectionStage, macroId: $macroId, macroStep: $macroStep, errorCode: $errorCode, sequence: $sequence, networkPermissionGranted: $networkPermissionGranted, volumeMin: $volumeMin, volumeContext: $volumeContext)';
   }
 }
 

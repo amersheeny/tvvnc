@@ -64,10 +64,12 @@ class VolumeSlider extends StatefulWidget {
 class _VolumeSliderState extends State<VolumeSlider> {
   double? draft;
   TvTarget? origin;
+  String? volumeContext;
   @override
   Widget build(BuildContext context) {
     final maximum = (widget.model.state?.volumeMax ?? 100).toDouble();
-    if (maximum <= 0) return const SizedBox.shrink();
+    final minimum = (widget.model.state?.volumeMin ?? 0).toDouble();
+    if (maximum <= minimum) return const SizedBox.shrink();
     return Column(
       children: [
         Text(
@@ -75,15 +77,16 @@ class _VolumeSliderState extends State<VolumeSlider> {
         ),
         Slider(
           value: (draft ?? widget.model.state?.volume?.toDouble() ?? 0).clamp(
-            0,
+            minimum,
             maximum,
           ),
-          min: 0,
+          min: minimum,
           max: maximum,
           semanticFormatterCallback: (value) =>
               '${t('volume')} ${value.round()}',
           onChangeStart: (_) {
             origin = widget.model.target;
+            volumeContext = widget.model.state?.volumeContext;
           },
           onChanged: (value) => setState(() => draft = value),
           onChangeEnd: (value) async {
@@ -91,6 +94,7 @@ class _VolumeSliderState extends State<VolumeSlider> {
               CommandKind.volume,
               origin: origin,
               number: value.round(),
+              value: volumeContext,
             );
             if (mounted) setState(() => draft = null);
           },
@@ -124,8 +128,24 @@ class _RemotePageState extends State<RemotePage> {
         ? m.selected!.layout
         : defaultLayout;
     final standardLayout = layout.join('|') == defaultLayout.join('|');
-    Widget remoteControlsList({bool shrink = false}) {
-      return ListView(
+    final powerCapability = m.state?.capabilities
+        .where((c) => c.id == 'powerToggle' && c.detail == 'tv')
+        .firstOrNull;
+    final powerControl = powerCapability == null
+        ? null
+        : Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: IconButton(
+              tooltip: t('power'),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              onPressed: () => canTry(powerCapability.state)
+                  ? m.command(CommandKind.powerToggle, origin: captured)
+                  : explainControl(context, m, t('power')),
+              icon: const Icon(Icons.power_settings_new, size: 24),
+            ),
+          );
+    Widget remoteControlsList({bool shrink = false, bool pinPower = true}) {
+      final list = ListView(
         shrinkWrap: shrink,
         physics: shrink ? const NeverScrollableScrollPhysics() : null,
         padding: const EdgeInsets.all(16),
@@ -301,7 +321,8 @@ class _RemotePageState extends State<RemotePage> {
               m.state?.capabilities.any(
                     (c) =>
                         c.id == 'absoluteVolume' &&
-                        c.state == Availability.advertised,
+                        (c.state == Availability.advertised ||
+                            c.state == Availability.ready),
                   ) ==
                   true)
             VolumeSlider(m),
@@ -327,6 +348,14 @@ class _RemotePageState extends State<RemotePage> {
               ),
             ],
           ),
+          if (powerControl != null && !pinPower) powerControl,
+        ],
+      );
+      if (!pinPower || powerControl == null) return list;
+      return Column(
+        children: [
+          Expanded(child: list),
+          powerControl,
         ],
       );
     }
@@ -338,7 +367,10 @@ class _RemotePageState extends State<RemotePage> {
           final wide =
               box.maxWidth > 760 && box.maxHeight >= 56 && frame.hidden != true;
           final short = !wide && box.maxHeight < 192;
-          final remote = remoteControlsList(shrink: short);
+          final remote = remoteControlsList(
+            shrink: short,
+            pinPower: !short && box.maxHeight >= 104,
+          );
           final preview = ResizableScreen(
             key: screenKey,
             model: m,

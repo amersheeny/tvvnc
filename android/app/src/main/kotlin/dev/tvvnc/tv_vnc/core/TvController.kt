@@ -209,6 +209,10 @@ class TvController(private val context: Context, private val textures: TextureRe
                 .put("visibilityFlags", imeWire.visibilityFlags).put("visibilityMessages", imeWire.visibilityMessages)
                 .put("textWrites", imeWire.textWrites).put("sentInputId", imeWire.sentInputId)
                 .put("sentContentVersion", imeWire.sentContentVersion))
+            .put("nativeAudio", JSONObject().put("outputId", nativeState.audioDeviceId)
+                .put("capability", nativeState.volumeCapability).put("minimum", nativeState.minimumVolume)
+                .put("maximum", nativeState.maximumVolume).put("level", nativeState.volume)
+                .put("muted", nativeState.muted))
             .put("lastNavigation", session.lastNavigation?.let { (code, outcome) ->
                 JSONObject().put("androidCode", code).put("transport", outcome.transport)
                     .put("delivery", outcome.delivery.name).put("error", outcome.errorCode)
@@ -292,12 +296,13 @@ class TvController(private val context: Context, private val textures: TextureRe
         private var remoteError: String? = null
         private var off = store.powerOffIntent(profile.id)
         private var powerIntentEpoch = 0L
+        private var tvPowerIdentified = false
         val voice = VoiceCapture(permissions) { state, failure -> scope.launch {
             voiceState = state; if (failure != null) error = failure; publish()
         } }
         val router = CapabilityRouter({ command -> !closed && selected === this && foreground &&
             permissions.networkAllowed() && command.deviceId == profile.id && command.sessionId == id },
-            { command -> if (command.kind in setOf(CommandKind.SONY, CommandKind.POWER_ON, CommandKind.POWER_OFF, CommandKind.POWER_TOGGLE) ||
+            { command -> if (command.kind in setOf(CommandKind.SONY, CommandKind.POWER_ON, CommandKind.POWER_OFF) ||
                 command.kind == CommandKind.KEY && command.code in setOf(82L, 178L, 172L, 165L, 166L, 167L))
                 listOf(sonyPort, remotePort, vncPort) else listOf(remotePort, sonyPort, vncPort) })
 
@@ -354,6 +359,9 @@ class TvController(private val context: Context, private val textures: TextureRe
                     profile = store.update(profile.id) { it.copy(mac = sony.state.mac) }
                 sonyAt = System.currentTimeMillis()
             } catch (e: Exception) { if (e is CancellationException) throw e; error = safeError(e) }
+            if (off && sony.state.power == "on") {
+                off = false; store.setPowerOffIntent(profile.id, false)
+            }
             if (off) stage = "standby" else if (sony.state.power == "on" || remote.state.value.connected || vnc?.state?.connected == true)
                 stage = "connected"
             publish()
@@ -447,6 +455,8 @@ class TvController(private val context: Context, private val textures: TextureRe
         }
         suspend fun execute(command: TvCommand): CommandOutcome {
             if (closed || !foreground) return CommandOutcome(Delivery.NOT_SENT, null, "not_connected")
+            if (command.kind == CommandKind.VOLUME && command.value != null && command.value != volumeContext())
+                return CommandOutcome(Delivery.NOT_SENT, null, "audio_output_changed")
             if ((command.code != null && command.code !in 0..65535) || (command.number != null && command.number !in 0..Int.MAX_VALUE.toLong()))
                 return CommandOutcome(Delivery.NOT_SENT, null, "invalid_command")
             val reportedName = if (command.kind == CommandKind.SONY) sony.state.buttons.firstOrNull { it.id == command.value }?.name else null
@@ -539,7 +549,8 @@ class TvController(private val context: Context, private val textures: TextureRe
                                 detectionTried = true; refreshSony(true)
                             } else refreshSony(false, powerOnly = true)
                             // Only a post-request observation may finish waking.
-                            if (PowerObservation.isOn(sony.state.power, remote.state.value.androidOn.takeIf { remote.state.value.connected })) {
+                            val sonyPanel = tvPowerIdentified || sony.supports("system", "getPowerStatus") || remote.state.value.vendor.equals("Sony", ignoreCase = true)
+                            if (PowerObservation.isOn(sony.state.power, remote.state.value.androidOn.takeIf { remote.state.value.connected && !sonyPanel })) {
                                 connectRemote(); ensureVnc(); refreshSony(true); return@withTimeout
                             }
                             delay(1000)
@@ -601,21 +612,43 @@ class TvController(private val context: Context, private val textures: TextureRe
             macro?.cancel(); macro = null; macroId = null; macroStep = null
         }
 
+        private fun nativeVolumeReady(absolute: Boolean = false): Boolean {
+            val r = remote.state.value
+            return r.connected && r.features and NativeRemoteSession.VOLUME != 0 && r.audioDeviceId != null &&
+                if (absolute) r.volumeCapability == 2 && r.minimumVolume != null && r.maximumVolume != null && r.volume != null
+                else r.volumeCapability in listOf(1, 2)
+        }
+        private fun volumeContext(): String? = if (nativeVolumeReady(true)) {
+            val r = remote.state.value
+            "remote:${remote.connectionGeneration}:${r.audioDeviceId}:${r.minimumVolume}:${r.maximumVolume}"
+        } else if (sony.state.volume != null && sony.state.maximumVolume != null) "sony:speaker:${sony.state.maximumVolume}" else null
+
         private val remotePort = object : CommandTransport {
             override val id = "remote"
             override val connectionGeneration: Long get() = remote.connectionGeneration
             override fun accepts(command: TvCommand) = remote.state.value.connected && when (command.kind) {
-                CommandKind.KEY, CommandKind.KEY_DOWN, CommandKind.KEY_UP, CommandKind.POWER_ON, CommandKind.POWER_OFF, CommandKind.POWER_TOGGLE ->
+                CommandKind.KEY, CommandKind.KEY_DOWN, CommandKind.KEY_UP, CommandKind.POWER_TOGGLE ->
                     remote.state.value.features and NativeRemoteSession.KEY != 0
                 CommandKind.TEXT -> remote.state.value.features and NativeRemoteSession.IME != 0
+                CommandKind.VOLUME -> nativeVolumeReady(true)
+                CommandKind.MUTE, CommandKind.UNMUTE -> nativeVolumeReady()
                 CommandKind.SONY -> remote.state.value.features and NativeRemoteSession.KEY != 0 && equivalent(command) != null
                 CommandKind.APP -> sony.state.apps.none { it.uri == command.value } && remote.state.value.features and NativeRemoteSession.APP_LINK != 0
                 else -> false
             }
             override suspend fun send(command: TvCommand, expectedConnection: Long) = attempt(id) {
                 when (command.kind) {
-                    CommandKind.KEY, CommandKind.KEY_DOWN, CommandKind.KEY_UP -> remote.key(command.code?.toInt() ?: throw CommandNotSent("unsupported"),
-                        when (command.kind) { CommandKind.KEY_DOWN -> 1; CommandKind.KEY_UP -> 2; else -> 3 }, expectedConnection)
+                    CommandKind.KEY, CommandKind.KEY_DOWN, CommandKind.KEY_UP -> {
+                        if (command.kind == CommandKind.KEY && command.code == 164L && nativeVolumeReady()) remote.mute(null, expectedConnection)
+                        else remote.key(command.code?.toInt() ?: throw CommandNotSent("unsupported"),
+                            when (command.kind) { CommandKind.KEY_DOWN -> 1; CommandKind.KEY_UP -> 2; else -> 3 }, expectedConnection)
+                    }
+                    CommandKind.VOLUME -> {
+                        if (command.value != null && command.value != volumeContext()) throw CommandNotSent("audio_output_changed")
+                        remote.setVolume(command.number?.toInt() ?: throw CommandNotSent("invalid_command"), remote.state.value.audioDeviceId, expectedConnection)
+                    }
+                    CommandKind.MUTE -> remote.mute(true, expectedConnection)
+                    CommandKind.UNMUTE -> remote.mute(false, expectedConnection)
                     CommandKind.TEXT -> remote.text(command.value.orEmpty(), command.replaceText, command.editorRevision, expectedConnection)
                     CommandKind.SONY -> remote.key(equivalent(command)!!.code, expectedConnection = expectedConnection)
                     CommandKind.APP -> {
@@ -623,8 +656,6 @@ class TvController(private val context: Context, private val textures: TextureRe
                         if (uri.scheme.isNullOrEmpty() || uri.scheme in setOf("file", "javascript", "data", "content")) throw CommandNotSent("invalid_link")
                         remote.launch(uri.toASCIIString(), expectedConnection)
                     }
-                    CommandKind.POWER_ON -> remote.key(224, expectedConnection = expectedConnection)
-                    CommandKind.POWER_OFF -> remote.key(223, expectedConnection = expectedConnection)
                     CommandKind.POWER_TOGGLE -> remote.key(26, expectedConnection = expectedConnection)
                     else -> throw CommandNotSent("unsupported")
                 }
@@ -662,7 +693,10 @@ class TvController(private val context: Context, private val textures: TextureRe
                     CommandKind.POWER_TOGGLE -> sony.ircc(sony.command("TvPower", "Power")!!)
                     CommandKind.MUTE -> sony.mute(true)
                     CommandKind.UNMUTE -> sony.mute(false)
-                    CommandKind.VOLUME -> sony.volume(command.number!!.toInt())
+                    CommandKind.VOLUME -> {
+                        if (command.value != null && command.value != volumeContext()) throw CommandNotSent("audio_output_changed")
+                        sony.volume(command.number!!.toInt())
+                    }
                     CommandKind.REBOOT -> sony.reboot()
                     else -> throw CommandNotSent("unsupported")
                 }
@@ -785,7 +819,11 @@ class TvController(private val context: Context, private val textures: TextureRe
             }
             cap("screen", if (screen.connected && !screen.stale) Availability.READY else if (screen.connected && screen.frameAt == 0L) Availability.ADVERTISED else Availability.UNAVAILABLE, "vnc", screen.frameAt)
             cap("pointer", if (screen.connected && !screen.stale) { if (profile.pointerVerified) Availability.READY else Availability.ADVERTISED } else Availability.UNAVAILABLE, "vnc", screen.frameAt)
-            cap("absoluteVolume", if (sony.supports("audio", "setAudioVolume")) Availability.ADVERTISED else Availability.UNKNOWN, "sony", sonyAt)
+            val nativeVolume = nativeVolumeReady(true)
+            cap("absoluteVolume", if (nativeVolume) Availability.READY
+                else if (sonyStatus == Availability.NEEDS_SETUP) Availability.NEEDS_SETUP
+                else if (sony.supports("audio", "setAudioVolume")) Availability.ADVERTISED else Availability.UNKNOWN,
+                if (nativeVolume) "remote" else "sony", if (nativeVolume) remoteAt else sonyAt)
             cap("sonyIrcc", if (s.buttons.isNotEmpty()) Availability.ADVERTISED else sonyStatus, "sony", sonyAt)
             cap("androidRemote", liveRemoteStatus, "remote", remoteAt)
             for ((name, flag) in listOf("key" to NativeRemoteSession.KEY, "text" to NativeRemoteSession.IME, "voice" to NativeRemoteSession.VOICE, "appLink" to NativeRemoteSession.APP_LINK))
@@ -795,14 +833,20 @@ class TvController(private val context: Context, private val textures: TextureRe
             cap("power", if (s.power != null) Availability.READY else Availability.UNKNOWN, "sony", sonyAt)
             cap("wake", if (!profile.mac.isNullOrBlank()) Availability.ADVERTISED else Availability.NEEDS_SETUP, "wol")
             cap("reboot", if (sony.supports("system", "requestReboot")) Availability.ADVERTISED else Availability.UNKNOWN, "sony", sonyAt)
+            // Identify TV-owned power separately from a generic Android box's
+            // sleep keys. KEY26 is the native physical-power bridge; 223/224
+            // are not supported by Android 9's TV input bridge.
+            if (sony.supports("system", "getPowerStatus") || r.vendor.equals("Sony", ignoreCase = true)) tvPowerIdentified = true
             for ((name, kind) in listOf("powerOn" to CommandKind.POWER_ON, "powerOff" to CommandKind.POWER_OFF, "powerToggle" to CommandKind.POWER_TOGGLE))
-                cap(name, actionAvailability(TvCommand(profile.id, id, kind, replaceText = false, privateText = false, userConfirmed = false)), "composite")
+                cap(name, actionAvailability(TvCommand(profile.id, id, kind, replaceText = false, privateText = false, userConfirmed = false)), "composite", detail = if (tvPowerIdentified) "tv" else null)
             val buttons = RemoteKeys.all.map { key -> TvButton(key.id, key.id, key.code.toLong(), null,
                 !off && r.connected && r.features and NativeRemoteSession.KEY != 0, false,
                 actionAvailability(TvCommand(profile.id, id, CommandKind.KEY, code = key.code.toLong(), replaceText = false, privateText = false, userConfirmed = false))) } +
                 s.buttons.map { it.copy(state = actionAvailability(TvCommand(profile.id, id, CommandKind.SONY, value = it.id, replaceText = false, privateText = false, userConfirmed = false))) }
             return SessionSnapshot(profile.id, id, s.power, s.currentInput, r.application.takeIf { r.connected },
-                s.volume ?: r.volume?.toLong()?.takeIf { r.connected }, s.maximumVolume ?: r.maximumVolume?.toLong()?.takeIf { r.connected }, s.muted ?: r.muted.takeIf { r.connected },
+                if (nativeVolume) r.volume?.toLong() else s.volume,
+                if (nativeVolume) r.maximumVolume?.toLong() else s.maximumVolume,
+                if (nativeVolumeReady()) r.muted else s.muted,
                 s.model ?: r.model.takeIf { it.isNotBlank() }, s.firmware, r.serviceVersion.takeIf { it.isNotBlank() }, profile.mac ?: s.mac,
                 r.editor?.let { EditorInfo(it.application, it.label, it.text, it.start.toLong(), it.end.toLong(), it.revision) }, screen,
                 listOf(TransportInfo("sony", sonyStatus, sonyAt, s.errors.values.firstOrNull(), s.latencyMs),
@@ -810,7 +854,8 @@ class TvController(private val context: Context, private val textures: TextureRe
                     TransportInfo("vnc", if (screen.connected) Availability.READY else if (screen.errorCode == "authentication_required") Availability.NEEDS_SETUP else Availability.UNAVAILABLE,
                         screen.frameAt, screen.errorCode, null)),
                 caps, buttons, s.inputs.map { it.copy(selected = SonyTransport.inputMatches(it.uri, s.currentInput)) }, s.apps,
-                voiceState, pairState, stage, macroId, macroStep, error, snapshotSequence.incrementAndGet(), permissions.networkAllowed())
+                voiceState, pairState, stage, macroId, macroStep, error, snapshotSequence.incrementAndGet(), permissions.networkAllowed(),
+                if (nativeVolume) r.minimumVolume?.toLong() else 0L, volumeContext())
         }
         fun publish() {
             if (selected !== this) return

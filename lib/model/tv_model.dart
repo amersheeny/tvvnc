@@ -347,6 +347,8 @@ class TvModel extends ChangeNotifier implements TvFlutterApi {
   static String errorKey(Object error) =>
       codeKey(error is PlatformException ? error.message : null);
   static String codeKey(String? code) => switch (code) {
+    'audio_output_changed' => 'notSent',
+    'ime_target_unavailable' => 'notSent',
     'network_permission' => 'permissionBody',
     'authentication_required' => 'authFailed',
     'pairing_required' => 'pairingRequired',

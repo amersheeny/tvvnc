@@ -142,7 +142,8 @@ class SessionSnapshot {
     this.remoteVersion, this.mac, this.editor, required this.screen,
     required this.transports, required this.capabilities, required this.buttons,
     required this.inputs, required this.apps, this.voiceState = 'idle',
-    this.pairingState = 'idle', this.connectionStage = 'disconnected', this.macroId, this.macroStep, this.errorCode, this.sequence, this.networkPermissionGranted});
+    this.pairingState = 'idle', this.connectionStage = 'disconnected', this.macroId, this.macroStep, this.errorCode, this.sequence, this.networkPermissionGranted,
+    this.volumeMin, this.volumeContext});
   String? deviceId;
   int sessionId;
   String? power;
@@ -170,6 +171,8 @@ class SessionSnapshot {
   String? errorCode;
   int? sequence;
   bool? networkPermissionGranted;
+  int? volumeMin;
+  String? volumeContext;
 }
 class TvCommand {
   TvCommand({required this.deviceId, required this.sessionId, required this.kind, this.code, this.value, this.number,

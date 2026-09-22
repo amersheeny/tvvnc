@@ -14,16 +14,21 @@ touch confirmation is preserved, with device/page checks across the dialog.
 Viewer already releases its pointer when the direct flag changes. The redundant
 Touchpad drawer destination is removed as part of the user's requested move.
 
-The user's subsequent explicit condition supersedes the power-footer plan:
-do not present a remote-area power control unless it controls the TV itself.
-Actual TV power remains unverified, so the remote currently contains neither
-the large power row nor a replacement power icon. The three modes remain in
-the overflow menu. No layout/command mapping or hold behavior is changed by
-removing that misleading control.
+The user's clarified condition is per TV, not a blanket removal. A single
+bottom power icon is shown when TV-owned power has been identified (Sony IP
+power service or Sony native device identity). This identification survives
+temporary readiness loss within the session. The icon uses semantic Toggle,
+preferring one native KEY26 SHORT; it does not offer the unmapped Android9
+223/224 sleep/wake keys. Unknown generic-device power is not presented as TV
+panel control. Physical toggle response still needs the phone/TV acceptance
+check; an available route is not a claim of confirmed panel actuation.
 
 The controller no longer disconnects channels after an unconfirmed power
 request. A fresh Sony standby observation is required to pause retry policy;
 a sent command alone is not an observation of the panel's power state.
+Explicit On/Off remain Sony discrete operations or Wake-on-LAN, not toggles
+guessed from cached state. Sony wake completion requires a fresh Sony panel
+observation instead of treating Android interactivity as panel proof.
 
 ## Plan review ledger
 

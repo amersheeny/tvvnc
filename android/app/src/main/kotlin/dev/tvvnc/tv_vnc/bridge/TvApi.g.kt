@@ -992,7 +992,9 @@ data class SessionSnapshot (
   val macroStep: Long? = null,
   val errorCode: String? = null,
   val sequence: Long? = null,
-  val networkPermissionGranted: Boolean? = null
+  val networkPermissionGranted: Boolean? = null,
+  val volumeMin: Long? = null,
+  val volumeContext: String? = null
 )
  {
   companion object {
@@ -1024,7 +1026,9 @@ data class SessionSnapshot (
       val errorCode = pigeonVar_list[24] as String?
       val sequence = pigeonVar_list[25] as Long?
       val networkPermissionGranted = pigeonVar_list[26] as Boolean?
-      return SessionSnapshot(deviceId, sessionId, power, currentInput, currentApp, volume, volumeMax, muted, model, firmware, remoteVersion, mac, editor, screen, transports, capabilities, buttons, inputs, apps, voiceState, pairingState, connectionStage, macroId, macroStep, errorCode, sequence, networkPermissionGranted)
+      val volumeMin = pigeonVar_list[27] as Long?
+      val volumeContext = pigeonVar_list[28] as String?
+      return SessionSnapshot(deviceId, sessionId, power, currentInput, currentApp, volume, volumeMax, muted, model, firmware, remoteVersion, mac, editor, screen, transports, capabilities, buttons, inputs, apps, voiceState, pairingState, connectionStage, macroId, macroStep, errorCode, sequence, networkPermissionGranted, volumeMin, volumeContext)
     }
   }
   fun toList(): List<Any?> {
@@ -1056,6 +1060,8 @@ data class SessionSnapshot (
       errorCode,
       sequence,
       networkPermissionGranted,
+      volumeMin,
+      volumeContext,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -1066,7 +1072,7 @@ data class SessionSnapshot (
       return true
     }
     val other = other as SessionSnapshot
-    return TvApiPigeonUtils.deepEquals(this.deviceId, other.deviceId) && TvApiPigeonUtils.deepEquals(this.sessionId, other.sessionId) && TvApiPigeonUtils.deepEquals(this.power, other.power) && TvApiPigeonUtils.deepEquals(this.currentInput, other.currentInput) && TvApiPigeonUtils.deepEquals(this.currentApp, other.currentApp) && TvApiPigeonUtils.deepEquals(this.volume, other.volume) && TvApiPigeonUtils.deepEquals(this.volumeMax, other.volumeMax) && TvApiPigeonUtils.deepEquals(this.muted, other.muted) && TvApiPigeonUtils.deepEquals(this.model, other.model) && TvApiPigeonUtils.deepEquals(this.firmware, other.firmware) && TvApiPigeonUtils.deepEquals(this.remoteVersion, other.remoteVersion) && TvApiPigeonUtils.deepEquals(this.mac, other.mac) && TvApiPigeonUtils.deepEquals(this.editor, other.editor) && TvApiPigeonUtils.deepEquals(this.screen, other.screen) && TvApiPigeonUtils.deepEquals(this.transports, other.transports) && TvApiPigeonUtils.deepEquals(this.capabilities, other.capabilities) && TvApiPigeonUtils.deepEquals(this.buttons, other.buttons) && TvApiPigeonUtils.deepEquals(this.inputs, other.inputs) && TvApiPigeonUtils.deepEquals(this.apps, other.apps) && TvApiPigeonUtils.deepEquals(this.voiceState, other.voiceState) && TvApiPigeonUtils.deepEquals(this.pairingState, other.pairingState) && TvApiPigeonUtils.deepEquals(this.connectionStage, other.connectionStage) && TvApiPigeonUtils.deepEquals(this.macroId, other.macroId) && TvApiPigeonUtils.deepEquals(this.macroStep, other.macroStep) && TvApiPigeonUtils.deepEquals(this.errorCode, other.errorCode) && TvApiPigeonUtils.deepEquals(this.sequence, other.sequence) && TvApiPigeonUtils.deepEquals(this.networkPermissionGranted, other.networkPermissionGranted)
+    return TvApiPigeonUtils.deepEquals(this.deviceId, other.deviceId) && TvApiPigeonUtils.deepEquals(this.sessionId, other.sessionId) && TvApiPigeonUtils.deepEquals(this.power, other.power) && TvApiPigeonUtils.deepEquals(this.currentInput, other.currentInput) && TvApiPigeonUtils.deepEquals(this.currentApp, other.currentApp) && TvApiPigeonUtils.deepEquals(this.volume, other.volume) && TvApiPigeonUtils.deepEquals(this.volumeMax, other.volumeMax) && TvApiPigeonUtils.deepEquals(this.muted, other.muted) && TvApiPigeonUtils.deepEquals(this.model, other.model) && TvApiPigeonUtils.deepEquals(this.firmware, other.firmware) && TvApiPigeonUtils.deepEquals(this.remoteVersion, other.remoteVersion) && TvApiPigeonUtils.deepEquals(this.mac, other.mac) && TvApiPigeonUtils.deepEquals(this.editor, other.editor) && TvApiPigeonUtils.deepEquals(this.screen, other.screen) && TvApiPigeonUtils.deepEquals(this.transports, other.transports) && TvApiPigeonUtils.deepEquals(this.capabilities, other.capabilities) && TvApiPigeonUtils.deepEquals(this.buttons, other.buttons) && TvApiPigeonUtils.deepEquals(this.inputs, other.inputs) && TvApiPigeonUtils.deepEquals(this.apps, other.apps) && TvApiPigeonUtils.deepEquals(this.voiceState, other.voiceState) && TvApiPigeonUtils.deepEquals(this.pairingState, other.pairingState) && TvApiPigeonUtils.deepEquals(this.connectionStage, other.connectionStage) && TvApiPigeonUtils.deepEquals(this.macroId, other.macroId) && TvApiPigeonUtils.deepEquals(this.macroStep, other.macroStep) && TvApiPigeonUtils.deepEquals(this.errorCode, other.errorCode) && TvApiPigeonUtils.deepEquals(this.sequence, other.sequence) && TvApiPigeonUtils.deepEquals(this.networkPermissionGranted, other.networkPermissionGranted) && TvApiPigeonUtils.deepEquals(this.volumeMin, other.volumeMin) && TvApiPigeonUtils.deepEquals(this.volumeContext, other.volumeContext)
   }
 
   override fun hashCode(): Int {
@@ -1098,10 +1104,12 @@ data class SessionSnapshot (
     result = 31 * result + TvApiPigeonUtils.deepHash(this.errorCode)
     result = 31 * result + TvApiPigeonUtils.deepHash(this.sequence)
     result = 31 * result + TvApiPigeonUtils.deepHash(this.networkPermissionGranted)
+    result = 31 * result + TvApiPigeonUtils.deepHash(this.volumeMin)
+    result = 31 * result + TvApiPigeonUtils.deepHash(this.volumeContext)
     return result
   }
   override fun toString(): String {
-    return "SessionSnapshot(deviceId=$deviceId, sessionId=$sessionId, power=$power, currentInput=$currentInput, currentApp=$currentApp, volume=$volume, volumeMax=$volumeMax, muted=$muted, model=$model, firmware=$firmware, remoteVersion=$remoteVersion, mac=$mac, editor=$editor, screen=$screen, transports=$transports, capabilities=$capabilities, buttons=$buttons, inputs=$inputs, apps=$apps, voiceState=$voiceState, pairingState=$pairingState, connectionStage=$connectionStage, macroId=$macroId, macroStep=$macroStep, errorCode=$errorCode, sequence=$sequence, networkPermissionGranted=$networkPermissionGranted)"
+    return "SessionSnapshot(deviceId=$deviceId, sessionId=$sessionId, power=$power, currentInput=$currentInput, currentApp=$currentApp, volume=$volume, volumeMax=$volumeMax, muted=$muted, model=$model, firmware=$firmware, remoteVersion=$remoteVersion, mac=$mac, editor=$editor, screen=$screen, transports=$transports, capabilities=$capabilities, buttons=$buttons, inputs=$inputs, apps=$apps, voiceState=$voiceState, pairingState=$pairingState, connectionStage=$connectionStage, macroId=$macroId, macroStep=$macroStep, errorCode=$errorCode, sequence=$sequence, networkPermissionGranted=$networkPermissionGranted, volumeMin=$volumeMin, volumeContext=$volumeContext)"
   }
 }
 

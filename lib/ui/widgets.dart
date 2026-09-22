@@ -334,6 +334,7 @@ class _RemoteButtonState extends State<RemoteButton> {
         Availability.unknown;
     final available = canTry(state);
     return Semantics(
+      identifier: 'tv-key-${widget.code}',
       label: widget.label,
       button: true,
       customSemanticsActions: canHold
@@ -389,7 +390,8 @@ class _RemoteButtonState extends State<RemoteButton> {
                   widget.model.report('notSent');
                   return;
                 }
-                if (widget.beforePress != null && !await widget.beforePress!()) {
+                if (widget.beforePress != null &&
+                    !await widget.beforePress!()) {
                   return;
                 }
                 if (!mounted || disposing) return;
