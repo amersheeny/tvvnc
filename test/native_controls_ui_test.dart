@@ -6,6 +6,38 @@ import 'package:tv_vnc/ui/remote_page.dart';
 import 'widget_safety_test.dart' show RecordingApi, model;
 
 void main() {
+  for (final availability in [Availability.ready, Availability.advertised]) {
+    testWidgets(
+      'usable power does not require a manufacturer tag: $availability',
+      (tester) async {
+        final api = RecordingApi();
+        final m = model(api);
+        m.state!.capabilities.add(
+          CapabilityInfo(
+            id: 'powerToggle',
+            state: availability,
+            transport: 'composite',
+            observedAt: 1,
+          ),
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: RemotePage(model: m, onPage: (_) {}),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final power = find.byTooltip('Power');
+        expect(power, findsOneWidget);
+        await tester.tap(power);
+        await tester.pumpAndSettle();
+        expect(api.commands.single.kind, CommandKind.powerToggle);
+        await tester.pumpWidget(const SizedBox());
+        m.dispose();
+      },
+    );
+  }
   testWidgets('identified TV exposes genuine power directly above Keyboard', (
     tester,
   ) async {

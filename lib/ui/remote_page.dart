@@ -131,7 +131,13 @@ class _RemotePageState extends State<RemotePage> {
         : defaultLayout;
     final standardLayout = layout.join('|') == defaultLayout.join('|');
     final powerCapability = m.state?.capabilities
-        .where((c) => c.id == 'powerToggle' && c.detail == 'tv')
+        .where(
+          (c) =>
+              c.id == 'powerToggle' &&
+              (c.detail == 'tv' ||
+                  c.state == Availability.ready ||
+                  c.state == Availability.advertised),
+        )
         .firstOrNull;
     final powerControl = powerCapability == null
         ? null
