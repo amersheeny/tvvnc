@@ -356,7 +356,7 @@ class TvController(private val context: Context, private val textures: TextureRe
             if (closed || !permissions.networkAllowed()) return@withLock
             try {
                 if (detect && !off) sony.discover() else sony.refresh(false, powerOnly = powerOnly)
-                if (sony.supports("system", "getPowerStatus")) tvPowerIdentified = true
+                if (sony.state.power != null || sony.supports("system", "getPowerStatus")) tvPowerIdentified = true
                 if (profile.mac.isNullOrBlank() && !sony.state.mac.isNullOrBlank())
                     profile = store.update(profile.id) { it.copy(mac = sony.state.mac) }
                 sonyAt = System.currentTimeMillis()
@@ -465,6 +465,8 @@ class TvController(private val context: Context, private val textures: TextureRe
             if (reportedName == "WakeUp") return wake(command.copy(kind = CommandKind.POWER_ON), macroId.takeIf { fromMacro })
             if (reportedName in setOf("TvPower", "Power")) return execute(command.copy(kind = CommandKind.POWER_TOGGLE), fromMacro)
             if (command.kind == CommandKind.POWER_ON) return wake(command, macroId.takeIf { fromMacro })
+            if (command.kind == CommandKind.POWER_TOGGLE && PowerObservation.shouldWakeToggle(sony.state.power, off))
+                return wake(command.copy(kind = CommandKind.POWER_ON), macroId.takeIf { fromMacro })
             if (command.kind == CommandKind.REBOOT && !command.userConfirmed)
                 return CommandOutcome(Delivery.NOT_SENT, null, "confirmation_required")
             if (command.kind == CommandKind.SONY && sony.state.buttons.any { it.id == command.value && it.disruptive } && !command.userConfirmed)
@@ -785,6 +787,8 @@ class TvController(private val context: Context, private val textures: TextureRe
         private fun actionAvailability(command: TvCommand): Availability {
             if (closed) return Availability.UNAVAILABLE
             if (!permissions.networkAllowed()) return Availability.PERMISSION_REQUIRED
+            if (command.kind == CommandKind.POWER_TOGGLE && PowerObservation.shouldWakeToggle(sony.state.power, off))
+                return actionAvailability(command.copy(kind = CommandKind.POWER_ON))
             if (off && command.kind !in setOf(CommandKind.POWER_ON, CommandKind.POWER_OFF, CommandKind.POWER_TOGGLE))
                 return Availability.UNAVAILABLE
             val s = sony.state

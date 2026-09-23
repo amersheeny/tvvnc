@@ -5,6 +5,18 @@ import org.junit.Test
 import kotlinx.coroutines.*
 
 class PowerObservationTest {
+    @Test fun powerToggleWakesAnObservedStandbyPanelWithoutAStoredOffIntent() {
+        assertTrue(PowerObservation.shouldWakeToggle("standby", false))
+        assertTrue(PowerObservation.shouldWakeToggle("standby", true))
+    }
+    @Test fun restoredOffIntentCanWakeBeforeTheMethodCatalogIsAvailable() {
+        assertTrue(PowerObservation.shouldWakeToggle(null, true))
+        assertFalse(PowerObservation.shouldWakeToggle(null, false))
+    }
+    @Test fun aFreshOnObservationTakesPrecedenceOverAnOldOffIntent() {
+        assertFalse(PowerObservation.shouldWakeToggle("on", true))
+        assertFalse(PowerObservation.shouldWakeToggle("on", false))
+    }
     @Test fun unknownIsNotOnOrStandby() {
         assertFalse(PowerObservation.isOn(null, null))
         assertFalse(PowerObservation.isStandby(null, null))

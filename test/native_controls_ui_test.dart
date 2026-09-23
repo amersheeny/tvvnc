@@ -6,6 +6,40 @@ import 'package:tv_vnc/ui/remote_page.dart';
 import 'widget_safety_test.dart' show RecordingApi, model;
 
 void main() {
+  testWidgets(
+    'standby power remains visible before normal discovery completes',
+    (tester) async {
+      final api = RecordingApi();
+      final m = model(api);
+      m.state!
+        ..power = 'standby'
+        ..connectionStage = 'reconnectPaused'
+        ..capabilities.add(
+          CapabilityInfo(
+            id: 'powerToggle',
+            state: Availability.unknown,
+            transport: 'composite',
+            observedAt: 1,
+            detail: 'tv',
+          ),
+        );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RemotePage(model: m, onPage: (_) {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final power = find.byTooltip('Power');
+      expect(power.hitTestable(), findsOneWidget);
+      await tester.tap(power);
+      await tester.pumpAndSettle();
+      expect(api.commands.single.kind, CommandKind.powerToggle);
+      await tester.pumpWidget(const SizedBox());
+      m.dispose();
+    },
+  );
   for (final availability in [Availability.ready, Availability.advertised]) {
     testWidgets(
       'usable power does not require a manufacturer tag: $availability',
