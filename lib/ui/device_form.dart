@@ -375,6 +375,36 @@ class _DevicesPageState extends State<DevicesPage> {
               ),
             ),
           const SizedBox(height: 24),
+          Card(
+            key: const ValueKey('tv-setup-note'),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.info_outline, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Semantics(
+                          header: true,
+                          child: Text(
+                            t('tvSetupTitle'),
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(t('tvSetupBody')),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: searching ? null : discover,
             icon: const Icon(Icons.radar),

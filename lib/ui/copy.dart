@@ -13,6 +13,8 @@ abstract final class Copy {
     "discover": "Find TVs",
     "manual": "Enter address",
     "noDevices": "Add a TV to get started.",
+    "tvSetupTitle": "Set up screen sharing on your TV",
+    "tvSetupBody": "To show the TV screen on this phone, the TV needs its own VNC server app, such as droidVNC-NG. Install and start it on the TV, then allow screen sharing when the TV asks. Not every TV can install one. Depending on your TV, remote controls can also work through TV pairing or Sony registration.",
     "discoveryEmpty":
         "No TVs found. Check that your phone and TV are on the same network.",
     "name": "TV name",
@@ -36,6 +38,8 @@ abstract final class Copy {
     "inputs": "Inputs",
     "diagnostics": "Diagnostics",
     "settings": "Settings",
+    "privacy": "Privacy policy",
+    "privacyUnavailable": "The privacy policy couldn’t be shown. Go back and try again, or contact support@apptico.com.",
     "power": "Power",
     "powerOn": "Turn on",
     "powerOff": "Turn off",

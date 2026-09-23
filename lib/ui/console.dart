@@ -9,6 +9,7 @@ import 'catalog_pages.dart';
 import 'device_form.dart';
 import 'diagnostics_page.dart';
 import 'keyboard_page.dart';
+import 'privacy_page.dart';
 import 'remote_page.dart';
 import 'shortcuts_page.dart';
 import 'widgets.dart';
@@ -40,6 +41,10 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
   int seenMessage = 0;
   bool showingPair = false;
   BuildContext? pairingContext;
+  bool needsTv(String destination) =>
+      destination != 'devices' && destination != 'privacy';
+  String get currentPage =>
+      widget.model.selected != null || !needsTv(page) ? page : 'devices';
   @override
   void initState() {
     super.initState();
@@ -209,9 +214,8 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
   }
 
   Future<void> navigate(String next) async {
-    final current = widget.model.selected == null ? 'devices' : page;
-    if (next == current ||
-        (widget.model.selected == null && next != 'devices')) {
+    final current = currentPage;
+    if (next == current || (widget.model.selected == null && needsTv(next))) {
       return;
     }
     if (current == 'keyboard' && !await prepareKeyboardExit()) return;
@@ -263,7 +267,8 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final m = widget.model;
-    final current = m.selected == null ? 'devices' : page;
+    final current = currentPage;
+    final tvPage = needsTv(current);
     final window = MediaQuery.sizeOf(context);
     final compactKeyboard =
         current == 'keyboard' &&
@@ -279,6 +284,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
       ('macros', Icons.playlist_play),
       ('diagnostics', Icons.monitor_heart_outlined),
       ('settings', Icons.settings_outlined),
+      ('privacy', Icons.privacy_tip_outlined),
     ];
     final body = switch (current) {
       'devices' => DevicesPage(model: m, onSelected: select),
@@ -294,6 +300,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
       'allButtons' => AllButtonsPage(m),
       'diagnostics' => DiagnosticsPage(m),
       'macros' => ShortcutsPage(m),
+      'privacy' => const PrivacyPage(),
       _ => SettingsPage(m, theme: widget.theme, onTheme: widget.onTheme),
     };
     return PopScope(
@@ -317,9 +324,25 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
                   icon: const Icon(Icons.arrow_back),
                   onPressed: closeKeyboard,
                 )
+              : current == 'privacy'
+              ? BackButton(
+                  onPressed: () {
+                    if (pageHistory.isNotEmpty) {
+                      pageHistory.last.remove();
+                    } else {
+                      navigate('devices');
+                    }
+                  },
+                )
               : null,
-          title: Text(current == 'devices' ? t('appTitle') : m.selected!.name),
-          actions: current == 'devices'
+          title: Text(
+            current == 'privacy'
+                ? t('privacy')
+                : current == 'devices'
+                ? t('appTitle')
+                : m.selected!.name,
+          ),
+          actions: !tvPage
               ? null
               : [
                   IconButton(
@@ -379,7 +402,7 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
           selectedIndex: entries.indexWhere((e) => e.$1 == current),
           onDestinationSelected: (index) {
             Navigator.pop(context);
-            if (entries[index].$1 == 'devices' || m.selected != null) {
+            if (!needsTv(entries[index].$1) || m.selected != null) {
               navigate(entries[index].$1);
             }
           },
@@ -401,9 +424,9 @@ class _ConsoleState extends State<Console> with WidgetsBindingObserver {
         body: SafeArea(
           child: Column(
             children: [
-              if (current != 'devices' && m.networkPermissionDenied)
+              if (tvPage && m.networkPermissionDenied)
                 NetworkPermissionPanel(m),
-              if (current != 'devices' && !compactKeyboard)
+              if (tvPage && !compactKeyboard)
                 Material(
                   color: Theme.of(context).colorScheme.surfaceContainer,
                   child: InkWell(
