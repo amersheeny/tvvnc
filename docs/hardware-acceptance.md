@@ -1,12 +1,16 @@
-# Hardware acceptance — not completed
+# Optional physical-TV compatibility checks
 
-The reference television is the Sony KD-55AF8. The controller phone/tablet model,
-OS version, droidVNC-NG version, capture mode and TV firmware must be recorded
-before the performance run. The current Android 15 Pixel 6 AVD (4096 MB, two
-cores, software GPU) is a protocol/UI integration environment, not a replacement
-for that fixed physical controller.
+Release validation uses the actual app on a headed Android emulator, including
+native protocol services and independent receiver assertions. The owner's
+physical phone is optional supplementary coverage, never a release blocker.
+This checklist records additional evidence about the reference Sony KD-55AF8;
+unavailable hardware does not prevent emulator validation or publication.
 
-## Required real-path checks
+Before claiming a physical-TV or performance result, record the controller
+model/OS, droidVNC-NG version, capture mode, TV firmware and test conditions.
+Emulator evidence is not described as a physical-TV result.
+
+## Supplementary real-TV checks
 
 - [ ] Pair Android Remote in the phone app; reconnect without another PIN.
 - [ ] Verify certificate changes require deliberate re-pairing.
@@ -38,8 +42,9 @@ for that fixed physical controller.
       keyboard-open, empty, populated and degraded states in the rendered app.
 - [ ] Complete independent technical and product audits against this evidence.
 
-No required failure is converted to a pass by relabelling it unsupported. A real
-platform limit requires independent evidence and an explicit limitation.
+An observed failure is not converted to a pass by relabelling it unsupported.
+A real platform limit requires evidence and an explicit limitation. Untested
+hardware combinations are labelled untested; they are not release gates.
 
 ## Timing protocol
 

@@ -6,11 +6,12 @@ The Google Play app entry has been created in Apptico LTD account
 declarations and disabling the optional installer check. Support contact:
 `support@apptico.com`. No release has been submitted or approved.
 
-The developer requested publication of the app PR without waiting for the
-unavailable physical phone. Post-fix Power visibility and panel wake therefore
-remain **unverified**, not passed. Source publication is a draft checkpoint;
-it is not release sign-off. Native dependency URLs now name the public forks
-rather than local filesystem paths.
+The headed Android emulator is the release-validation environment. The owner's
+physical phone is optional supplementary coverage, never a release prerequisite.
+Post-fix behavior must be exercised on the actual app running in that emulator;
+physical-TV observations remain separately labelled and are not inferred from
+protocol fixtures. Source publication is a draft checkpoint, not release
+sign-off. Native dependency URLs name public forks, not local filesystem paths.
 
 The current Power code recognizes a Sony standby observation without waiting
 for the method catalogue and routes a standby toggle through wake recovery.
