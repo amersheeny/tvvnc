@@ -6,7 +6,7 @@ import 'package:tv_vnc/ui/remote_page.dart';
 import 'widget_safety_test.dart' show RecordingApi, model;
 
 void main() {
-  testWidgets('identified TV exposes only a compact genuine power toggle', (
+  testWidgets('identified TV exposes genuine power directly above Keyboard', (
     tester,
   ) async {
     final api = RecordingApi();
@@ -32,13 +32,82 @@ void main() {
     expect(find.text('Turn off'), findsNothing);
     final power = find.byTooltip('Power');
     expect(power, findsOneWidget);
-    expect(tester.getSize(power).height, greaterThanOrEqualTo(48));
+    final keyboard = find.byTooltip('Keyboard');
+    expect(tester.getSize(power), tester.getSize(keyboard));
+    expect(tester.getSize(power), const Size(56, 56));
+    expect(tester.getCenter(power).dx, tester.getCenter(keyboard).dx);
+    expect(tester.getRect(keyboard).top - tester.getRect(power).bottom, 6);
+    Color? buttonColor(IconData icon) => tester
+        .widget<Material>(
+          find
+              .descendant(
+                of: find.widgetWithIcon(IconButton, icon),
+                matching: find.byType(Material),
+              )
+              .first,
+        )
+        .color;
+    expect(
+      buttonColor(Icons.power_settings_new),
+      buttonColor(Icons.keyboard_outlined),
+    );
     await tester.tap(power);
     await tester.pumpAndSettle();
     expect(api.commands.single.kind, CommandKind.powerToggle);
     await tester.pumpWidget(const SizedBox());
     m.dispose();
   });
+  for (final size in [
+    const Size(390, 780),
+    const Size(900, 430),
+    const Size(320, 170),
+    const Size(900, 80),
+  ]) {
+    testWidgets('power stays above Keyboard and reachable at $size', (
+      tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final api = RecordingApi();
+      final m = model(api);
+      m.remoteScreenHeight.value = 600;
+      m.state!.capabilities.add(
+        CapabilityInfo(
+          id: 'powerToggle',
+          state: Availability.ready,
+          transport: 'composite',
+          observedAt: 1,
+          detail: 'tv',
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RemotePage(model: m, onPage: (_) {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final power = find.byKey(const ValueKey('tv-power'));
+      await tester.ensureVisible(power);
+      await tester.pumpAndSettle();
+      expect(power.hitTestable(), findsOneWidget);
+      expect(tester.getRect(power).bottom, lessThanOrEqualTo(size.height));
+      final keyboard = find.byTooltip('Keyboard');
+      expect(tester.getSize(power), tester.getSize(keyboard));
+      expect(tester.getSize(power), const Size(56, 56));
+      expect(tester.getCenter(power).dx, tester.getCenter(keyboard).dx);
+      expect(tester.getRect(keyboard).top - tester.getRect(power).bottom, 6);
+      await tester.tap(power);
+      await tester.pumpAndSettle();
+      expect(api.commands.single.kind, CommandKind.powerToggle);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      m.dispose();
+    });
+  }
   testWidgets(
     'native volume range and output ownership reach the semantic command',
     (tester) async {

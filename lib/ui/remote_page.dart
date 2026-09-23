@@ -135,19 +135,17 @@ class _RemotePageState extends State<RemotePage> {
         .firstOrNull;
     final powerControl = powerCapability == null
         ? null
-        : Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: IconButton(
-              tooltip: t('power'),
-              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-              onPressed: () => canTry(powerCapability.state)
-                  ? m.command(CommandKind.powerToggle, origin: captured)
-                  : explainControl(context, m, t('power')),
-              icon: const Icon(Icons.power_settings_new, size: 24),
-            ),
+        : IconButton.filledTonal(
+            key: const ValueKey('tv-power'),
+            tooltip: t('power'),
+            constraints: const BoxConstraints(minWidth: 56, minHeight: 56),
+            onPressed: () => canTry(powerCapability.state)
+                ? m.command(CommandKind.powerToggle, origin: captured)
+                : explainControl(context, m, t('power')),
+            icon: const Icon(Icons.power_settings_new),
           );
-    Widget remoteControlsList({bool shrink = false, bool pinPower = true}) {
-      final list = ListView(
+    Widget remoteControlsList({bool shrink = false}) {
+      return ListView(
         shrinkWrap: shrink,
         physics: shrink ? const NeverScrollableScrollPhysics() : null,
         padding: const EdgeInsets.all(16),
@@ -201,6 +199,10 @@ class _RemotePageState extends State<RemotePage> {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (powerControl != null) ...[
+                    powerControl,
+                    const SizedBox(height: 6),
+                  ],
                   IconButton.filledTonal(
                     tooltip: t('keyboard'),
                     constraints: const BoxConstraints(
@@ -350,29 +352,18 @@ class _RemotePageState extends State<RemotePage> {
               ),
             ],
           ),
-          if (powerControl != null && !pinPower) powerControl,
-        ],
-      );
-      if (!pinPower || powerControl == null) return list;
-      return Column(
-        children: [
-          Expanded(child: list),
-          powerControl,
         ],
       );
     }
 
-    return ValueListenableBuilder<ScreenInfo>(
+    final content = ValueListenableBuilder<ScreenInfo>(
       valueListenable: m.screen,
       builder: (context, frame, _) => LayoutBuilder(
         builder: (context, box) {
           final wide =
               box.maxWidth > 760 && box.maxHeight >= 56 && frame.hidden != true;
           final short = !wide && box.maxHeight < 192;
-          final remote = remoteControlsList(
-            shrink: short,
-            pinPower: !short && box.maxHeight >= 104,
-          );
+          final remote = remoteControlsList(shrink: short);
           final preview = ResizableScreen(
             key: screenKey,
             model: m,
@@ -411,6 +402,7 @@ class _RemotePageState extends State<RemotePage> {
         },
       ),
     );
+    return content;
   }
 }
 
