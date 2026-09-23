@@ -30,13 +30,14 @@ can remain available when screen sharing is unavailable.
 
 ## Screenshots
 
-These are screenshots of the actual Android app connected to a local test
-service, not to a physical TV. The coloured preview is a test pattern. They show
-what the app looks like, not which TVs it works with.
+These are screenshots of the actual Android app. The TV area shows an
+AI-generated, illustrative smart-TV search screen streamed through the VNC
+viewer by a local test service. It is not a capture from a physical TV or a
+real streaming app. The phone controls are unaltered.
 
 <p>
-  <a href="docs/images/remote.png"><img src="docs/images/remote.png" width="230" alt="Remote screen for Demo TV with a test-pattern preview, D-pad, volume, Back, Home, Options, Input and a power icon"></a>
-  <a href="docs/images/keyboard.png"><img src="docs/images/keyboard.png" width="230" alt="Keyboard screen showing a text field prefilled with 'Search for a film', the TV test-pattern preview and the phone keyboard"></a>
+  <a href="docs/images/remote.png"><img src="docs/images/remote.png" width="230" alt="Remote screen for Demo TV with an illustrative smart-TV preview, D-pad, volume, Back, Home, Options, Input and a power icon"></a>
+  <a href="docs/images/keyboard.png"><img src="docs/images/keyboard.png" width="230" alt="Keyboard screen showing a text field prefilled with 'Search for a film', an illustrative TV search screen and the phone keyboard"></a>
   <a href="docs/images/all-buttons.png"><img src="docs/images/all-buttons.png" width="230" alt="All buttons screen with a search field, filters for Sony and for Android TV Remote, and a list of directional and navigation buttons"></a>
 </p>
 
