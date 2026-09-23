@@ -1,4 +1,39 @@
-# TV VNC release status — 2026-09-22
+# TV VNC release status — 2026-09-23
+
+The Google Play app entry has been created in Apptico LTD account
+`7883012350776988385`, app ID `4975411859587523968`, for package
+`com.asheeny.tvvnc`. The developer authorized the three required creation
+declarations and disabling the optional installer check. Support contact:
+`support@apptico.com`. No release has been submitted or approved.
+
+The developer requested publication of the app PR without waiting for the
+unavailable physical phone. Post-fix Power visibility and panel wake therefore
+remain **unverified**, not passed. Source publication is a draft checkpoint;
+it is not release sign-off. Native dependency URLs now name the public forks
+rather than local filesystem paths.
+
+The current Power code recognizes a Sony standby observation without waiting
+for the method catalogue and routes a standby toggle through wake recovery.
+The icon is the same size and tonal style as Keyboard, directly above it.
+The replacement debug APK was installed without clearing the phone's data;
+its SHA-256 is
+`af9b5a05133ff882f2be5fafc87b46470389919a2b2df526d092b6d12a45fba7`.
+The app's Android unit suite passed after the standby fix. That is not
+physical-TV evidence.
+
+Open release work includes the newly identified interrupted-socket-wait VNC
+disconnect defect, remaining independent review findings, public-clone build
+verification, in-app/public privacy policy, store metadata/assets and
+declarations, and a newly built and verified signed release bundle. Existing
+signed release artifacts predate the latest Power layout and must not be
+uploaded. Progress is tracked in
+https://github.com/amersheeny/tvvnc/issues/1.
+
+## Historical checkpoints — superseded status follows
+
+The records below preserve earlier tests and diagnoses. Statements about
+publication, contact details, signing, or outstanding authorization describe
+those earlier checkpoints, not the current status above.
 
 Publication is requested but not complete. The public repository is
 https://github.com/amersheeny/tvvnc, currently empty. The outstanding release

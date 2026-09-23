@@ -2,11 +2,11 @@
 
 ## Build availability
 
-This is a maintainer build, not yet a reproducible public-clone release. Two
-native submodule URLs still point to local development repositories. They must
-be replaced by fetchable, reviewed fork commits before a new checkout can build.
+This is a development build, not a validated public release. Native submodules
+pin commits in public repositories, including the maintained TV VNC forks.
 Do not substitute unmodified upstream commits: the maintained forks contain
 Android Remote integration and VNC socket-read changes used by this app.
+Fresh public-clone build verification and release sign-off remain open.
 
 Track source publication, signing and acceptance in
 [the release checklist](https://github.com/amersheeny/tvvnc/issues/1).
@@ -38,8 +38,8 @@ capture and VNC decoding use the native components where appropriate.
 ## Building an existing maintainer checkout
 
 The placeholders below must be replaced with absolute paths on your machine.
-This procedure assumes the local native forks are already available; it does
-not solve the public-submodule publication blocker above.
+Initialize the pinned native submodules before building. The current source is
+on the app's draft pull-request branch, not the documentation-only main branch.
 
 ```sh
 TVVNC_CHECKOUT=/absolute/path/to/tvvnc

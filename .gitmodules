@@ -1,11 +1,9 @@
 [submodule "native/libvncserver"]
 	path = native/libvncserver
-	url = /Users/amsh/repos/git/tvVNC-libvncserver
-	branch = fix/partial-buffer-read
+	url = https://github.com/amersheeny/tvvnc-libvncserver.git
 [submodule "native/libjpeg-turbo"]
 	path = native/libjpeg-turbo
 	url = https://github.com/libjpeg-turbo/libjpeg-turbo.git
 [submodule "native/androidtv-remote"]
 	path = native/androidtv-remote
-	url = /Users/amsh/repos/git/tvVNC-remote-core
-	branch = feat/androidtv-library
+	url = https://github.com/amersheeny/tvvnc-remote-core.git
