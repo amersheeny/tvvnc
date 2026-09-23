@@ -69,10 +69,10 @@ The ARM64 debug APK is written to
 `$TVVNC_CHECKOUT/build/app/outputs/flutter-apk/app-debug.apk`. Omit the target
 platform option when preparing the normal multi-ABI debug artifact.
 
-**Release signing is not configured yet.** The current Gradle release build
-still uses a debug signing key. A successful `--release` build is not a
-Play-ready artifact, and the user's installed app must not be uninstalled to
-work around a signing mismatch.
+Release builds use the external [upload-signing configuration](signing.md),
+never the debug key. Without that configuration, release outputs are unsigned
+and are not ready for installation or Play upload. The user's installed app
+must not be uninstalled to work around a signing mismatch.
 
 ## Checks
 

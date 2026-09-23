@@ -4,6 +4,9 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val uploadKeystore = providers.environmentVariable("TVVNC_UPLOAD_KEYSTORE").orNull
+val uploadStorePassword = providers.environmentVariable("TVVNC_UPLOAD_STORE_PASSWORD").orNull
+
 android {
     namespace = "dev.tvvnc.tv_vnc"
     compileSdk = 37
@@ -30,12 +33,22 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (uploadKeystore != null) {
+            create("upload") {
+                storeFile = file(uploadKeystore)
+                storePassword = uploadStorePassword
+                keyAlias = providers.environmentVariable("TVVNC_UPLOAD_KEY_ALIAS").getOrElse("upload")
+                keyPassword = providers.environmentVariable("TVVNC_UPLOAD_KEY_PASSWORD").orNull
+                    ?: uploadStorePassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("upload")
         }
     }
     externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "4.1.2" } }
