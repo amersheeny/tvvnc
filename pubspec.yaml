@@ -20,3 +20,14 @@ flutter:
   uses-material-design: true
   assets:
     - assets/privacy-policy.json
+    - LICENSE
+    - NOTICE
+    - assets/licenses/
+    - native/libvncserver/COPYING
+    - native/libvncserver/AUTHORS
+    - native/libvncserver/TVCONSOLE_CHANGES.md
+    - native/libjpeg-turbo/LICENSE.md
+    - native/libjpeg-turbo/README.ijg
+    - native/androidtv-remote/LICENSE
+    - native/androidtv-remote/androidtv-remote/NOTICE
+    - native/androidtv-remote/protocol-schemas/LICENSE
