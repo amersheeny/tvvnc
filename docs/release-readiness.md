@@ -1,4 +1,4 @@
-# TV VNC release status — 2026-09-23
+# TV VNC release status — 2026-09-24
 
 The Google Play app entry has been created in Apptico LTD account
 `7883012350776988385`, app ID `4975411859587523968`, for package
@@ -13,22 +13,49 @@ physical-TV observations remain separately labelled and are not inferred from
 protocol fixtures. Source publication is a draft checkpoint, not release
 sign-off. Native dependency URLs name public forks, not local filesystem paths.
 
-The current Power code recognizes a Sony standby observation without waiting
-for the method catalogue and routes a standby toggle through wake recovery.
-The icon is the same size and tonal style as Keyboard, directly above it.
-The replacement debug APK was installed without clearing the phone's data;
-its SHA-256 is
-`af9b5a05133ff882f2be5fafc87b46470389919a2b2df526d092b6d12a45fba7`.
-The app's Android unit suite passed after the standby fix. That is not
-physical-TV evidence.
+The current Power code retains a usable authenticated native toggle in standby;
+Sony/Wake-on-LAN recovery remains available when that route is unavailable.
+The icon is the same 56 dp size and tonal style as Keyboard, directly above it.
+The headed emulator demonstrated native On → Standby → On without a Sony key,
+and a separate authenticated Sony-only sequence passed with native keys disabled.
+Failed Sony wake authentication is reported immediately and remains in the
+diagnostic report after the wake timeout. These are protocol-fixture tests,
+not a claim of universal physical-TV compatibility.
 
-Open release work includes the newly identified interrupted-socket-wait VNC
-disconnect defect, remaining independent review findings, public-clone build
-verification, in-app/public privacy policy, store metadata/assets and
-declarations, and a newly built and verified signed release bundle. Existing
-signed release artifacts predate the latest Power layout and must not be
-uploaded. Progress is tracked in
-https://github.com/amersheeny/tvvnc/issues/1.
+The app now explains TV-side VNC server setup on Your TVs and includes a bundled,
+offline Privacy policy. The VNC interrupted-read/write fix is integrated.
+Native dependency URLs are public, immutable gitlinks. Store text, source-code
+directions, license notices, artwork and new 1080×1920 screenshots are prepared.
+The TV image is an AI-generated illustration displayed through the real viewer.
+
+The current signed AAB was built from the application source at `d1ad151`:
+`/Users/amsh/worktrees/tvVNC/worktree/build/app/outputs/bundle/release/app-release.aab`.
+Its SHA-256 is
+`6939653997a839fac74013fe28cad10ec21dc8c7b9f771677d77e9ba65f35417`.
+Subsequent commit `359a664` adds only the screenshot-capture flow, not build inputs.
+The older signed artifacts mentioned in historical checkpoints are superseded.
+
+Current evidence: 169 Flutter tests, 44 Android application unit tests, clean
+Flutter analysis, an actual Android runtime probe of minified protobuf/pairing
+classes, APK signature verification and 16 KB ZIP alignment. All twelve expected
+license/notice files match their source bytes in the signed AAB and APK.
+Evidence logs are `/Users/amsh/worktrees/tvVNC/release-final-flutter-tests.log`,
+`/Users/amsh/worktrees/tvVNC/release-power-app-units-fixed.log`,
+`/Users/amsh/worktrees/tvVNC/release-final-analyze.log`,
+`/Users/amsh/worktrees/tvVNC/release-current-art-probe.log`, and
+`/Users/amsh/worktrees/tvVNC/release-current-apk-signature.log`.
+Rendered runs are `/Users/amsh/worktrees/tvVNC/power-native-fallback-after`,
+`/Users/amsh/worktrees/tvVNC/sony-power-release`,
+`/Users/amsh/worktrees/tvVNC/wake-auth-diagnostic-confirm`,
+`/Users/amsh/worktrees/tvVNC/standby-diagnostics-after`, and
+`/Users/amsh/worktrees/tvVNC/play-current-capture`.
+
+Public privacy hosting, final PR publication checks, remaining Console forms,
+bundle upload and submission are unfinished. No new copy gate, hook, workflow,
+VPN, companion or cloud service has been installed. The user has directed that
+no further scope be added. Progress is tracked at
+https://github.com/amersheeny/tvvnc/issues/1; app PR:
+https://github.com/amersheeny/tvvnc/pull/2.
 
 ## Historical checkpoints — superseded status follows
 
