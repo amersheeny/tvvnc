@@ -1,4 +1,9 @@
-# Phase 0 implementation ledger
+# Historical Phase 0 implementation ledger
+
+This ledger preserves earlier checkpoints, not current release status. See
+[the release status](release-readiness.md) for current evidence and publication
+work. References below to a proposed copy gate are historical: it was not
+installed and is not being pursued as part of this release.
 
 The implementation and the proof are deliberately tracked separately. A checked
 implementation item is not a claim of Sony hardware acceptance.
