@@ -465,7 +465,7 @@ class TvController(private val context: Context, private val textures: TextureRe
             if (reportedName == "WakeUp") return wake(command.copy(kind = CommandKind.POWER_ON), macroId.takeIf { fromMacro })
             if (reportedName in setOf("TvPower", "Power")) return execute(command.copy(kind = CommandKind.POWER_TOGGLE), fromMacro)
             if (command.kind == CommandKind.POWER_ON) return wake(command, macroId.takeIf { fromMacro })
-            if (command.kind == CommandKind.POWER_TOGGLE && PowerObservation.shouldWakeToggle(sony.state.power, off))
+            if (command.kind == CommandKind.POWER_TOGGLE && PowerObservation.shouldWakeToggle(sony.state.power, off, remotePort.accepts(command)))
                 return wake(command.copy(kind = CommandKind.POWER_ON), macroId.takeIf { fromMacro })
             if (command.kind == CommandKind.REBOOT && !command.userConfirmed)
                 return CommandOutcome(Delivery.NOT_SENT, null, "confirmation_required")
@@ -538,19 +538,23 @@ class TvController(private val context: Context, private val textures: TextureRe
                 var detectionTried = false
                 val remoteGenerations = mutableSetOf<Long>()
                 var wolSent = false
+                var wakeError: String? = null
+                fun recordWakeError(code: String?) {
+                    if (code != null) { wakeError = code; error = code; publish() }
+                }
                 try {
                     withTimeout(90_000) {
                         while (isActive && !closed && !off && foreground && permissions.networkAllowed()) {
                             if (!sonyTried && sonyPort.accepts(command)) {
-                                sonyTried = true; sonyPort.send(command)
+                                sonyTried = true; recordWakeError(sonyPort.send(command).errorCode)
                             }
                             if (!wolSent && !profile.mac.isNullOrBlank()) {
                                 wolSent = true
                                 try { sendWake(profile.host, profile.mac!!) }
-                                catch (e: Exception) { if (e is CancellationException) throw e; error = safeError(e) }
+                                catch (e: Exception) { if (e is CancellationException) throw e; recordWakeError(safeError(e)) }
                             }
                             val remoteEpoch = remote.connectionGeneration
-                            if (remotePort.accepts(command) && remoteGenerations.add(remoteEpoch)) remotePort.send(command, remoteEpoch)
+                            if (remotePort.accepts(command) && remoteGenerations.add(remoteEpoch)) recordWakeError(remotePort.send(command, remoteEpoch).errorCode)
                             // Explicit wake authorizes discovery. A restored Off
                             // intent has no cached method catalog in memory.
                             if (!detectionTried && sony.state.available && sony.state.methods.isEmpty()) {
@@ -558,12 +562,13 @@ class TvController(private val context: Context, private val textures: TextureRe
                             } else refreshSony(false, powerOnly = true)
                             // Only a post-request observation may finish waking.
                             if (panelOnObserved()) {
+                                if (error == wakeError) error = null
                                 connectRemote(); ensureVnc(); refreshSony(true); return@withTimeout
                             }
                             delay(1000)
                         }
                     }
-                } catch (_: TimeoutCancellationException) { error = "wake_unconfirmed" }
+                } catch (_: TimeoutCancellationException) { error = wakeError ?: error ?: "wake_unconfirmed" }
                 catch (e: Exception) { if (e is CancellationException) throw e; error = safeError(e) }
                 finally {
                     if (waking === coroutineContext[Job]) { waking = null; wakeOwnerMacro = null }
@@ -787,7 +792,7 @@ class TvController(private val context: Context, private val textures: TextureRe
         private fun actionAvailability(command: TvCommand): Availability {
             if (closed) return Availability.UNAVAILABLE
             if (!permissions.networkAllowed()) return Availability.PERMISSION_REQUIRED
-            if (command.kind == CommandKind.POWER_TOGGLE && PowerObservation.shouldWakeToggle(sony.state.power, off))
+            if (command.kind == CommandKind.POWER_TOGGLE && PowerObservation.shouldWakeToggle(sony.state.power, off, remotePort.accepts(command)))
                 return actionAvailability(command.copy(kind = CommandKind.POWER_ON))
             if (off && command.kind !in setOf(CommandKind.POWER_ON, CommandKind.POWER_OFF, CommandKind.POWER_TOGGLE))
                 return Availability.UNAVAILABLE

@@ -5,6 +5,15 @@ import org.junit.Test
 import kotlinx.coroutines.*
 
 class PowerObservationTest {
+    @Test fun aReadyNativeRemoteKeepsThePhysicalPowerToggleInEveryPanelState() {
+        for (panel in listOf("on", "standby", null)) {
+            for (offIntent in listOf(false, true)) {
+                assertFalse(PowerObservation.shouldWakeToggle(panel, offIntent, directToggleReady = true))
+                assertEquals(PowerObservation.shouldWakeToggle(panel, offIntent),
+                    PowerObservation.shouldWakeToggle(panel, offIntent, directToggleReady = false))
+            }
+        }
+    }
     @Test fun powerToggleWakesAnObservedStandbyPanelWithoutAStoredOffIntent() {
         assertTrue(PowerObservation.shouldWakeToggle("standby", false))
         assertTrue(PowerObservation.shouldWakeToggle("standby", true))

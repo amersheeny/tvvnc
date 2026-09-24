@@ -1,0 +1,16 @@
+appId: com.asheeny.tvvnc
+---
+- assertVisible: "(?s).*Android TV Remote.*Connected.*On"
+- assertVisible: "Power"
+- takeScreenshot: power-on-before
+- tapOn: "Power"
+- extendedWaitUntil:
+    visible: "(?s).*Standby.*"
+    timeout: 15000
+- assertVisible: "Power"
+- takeScreenshot: power-standby
+- tapOn: "Power"
+- extendedWaitUntil:
+    visible: "(?s).*Connected.*On"
+    timeout: 15000
+- takeScreenshot: power-on-after

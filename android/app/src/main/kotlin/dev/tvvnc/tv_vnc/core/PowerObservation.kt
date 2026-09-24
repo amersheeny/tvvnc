@@ -8,7 +8,7 @@ import kotlinx.coroutines.isActive
 /** Panel observations take precedence over Android's service state. Absence is
  * not evidence of either On or Standby. */
 object PowerObservation {
-    fun shouldWakeToggle(panel: String?, offIntent: Boolean): Boolean = when (panel) {
+    fun shouldWakeToggle(panel: String?, offIntent: Boolean, directToggleReady: Boolean = false): Boolean = !directToggleReady && when (panel) {
         "on" -> false
         "standby" -> true
         else -> offIntent

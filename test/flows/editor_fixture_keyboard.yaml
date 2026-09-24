@@ -3,7 +3,7 @@ appId: com.asheeny.tvvnc
 - launchApp
 - tapOn: "(?s)Editor protocol fixture.*"
 - extendedWaitUntil:
-    visible: "(?s)Android TV Remote.*Connected.*"
+    visible: "(?s).*Android TV Remote.*Connected.*"
     timeout: 20000
 - tapOn: "Keyboard"
 - assertVisible: "Example search"

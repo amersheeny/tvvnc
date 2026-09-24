@@ -1,0 +1,17 @@
+appId: com.asheeny.tvvnc
+---
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Diagnostics.*"
+- tapOn: "Test connections"
+- scrollUntilVisible:
+    element:
+      text: "Test connections"
+      index: 1
+    direction: DOWN
+- tapOn:
+    text: "Test connections"
+    index: 1
+- scrollUntilVisible:
+    element: '(?s).*"lastError": "authentication_required".*'
+    direction: DOWN
+- takeScreenshot: wake-auth-diagnostic

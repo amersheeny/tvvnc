@@ -4,7 +4,7 @@ appId: com.asheeny.tvvnc
 - inputText: "${PAIRING_CODE}"
 - tapOn: "Pair"
 - extendedWaitUntil:
-    visible: "(?s)Android TV Remote.*Connected.*"
+    visible: "(?s).*Android TV Remote.*Connected.*"
     timeout: 20000
 - tapOn: "Keyboard"
 - assertVisible: "Example search"
