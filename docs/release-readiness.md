@@ -28,11 +28,13 @@ Native dependency URLs are public, immutable gitlinks. Store text, source-code
 directions, license notices, artwork and new 1080×1920 screenshots are prepared.
 The TV image is an AI-generated illustration displayed through the real viewer.
 
-The current signed AAB was built from the application source at `d1ad151`:
+The current signed AAB was built from the application source at `a50a066`:
 `/Users/amsh/worktrees/tvVNC/worktree/build/app/outputs/bundle/release/app-release.aab`.
 Its SHA-256 is
-`6939653997a839fac74013fe28cad10ec21dc8c7b9f771677d77e9ba65f35417`.
-Subsequent commit `359a664` adds only the screenshot-capture flow, not build inputs.
+`ee707f1cb2291b4960a806dafae5f9f699c13263088d8c33ebc70a9fa4498dfe`.
+The signed APK SHA-256 is
+`362b6a48efae6ff408d4a5d6c8d486bfaa87cd9e7dbb1d03e7c69887d1ef3df0`.
+Subsequent commits add only test-flow/evidence records, not application build inputs.
 The older signed artifacts mentioned in historical checkpoints are superseded.
 
 Current evidence: 169 Flutter tests, 44 Android application unit tests, clean
@@ -50,9 +52,23 @@ Rendered runs are `/Users/amsh/worktrees/tvVNC/power-native-fallback-after`,
 `/Users/amsh/worktrees/tvVNC/standby-diagnostics-after`, and
 `/Users/amsh/worktrees/tvVNC/play-current-capture`.
 
-Public privacy hosting, final PR publication checks, remaining Console forms,
-bundle upload and submission are unfinished. No new copy gate, hook, workflow,
-VPN, companion or cloud service has been installed. The user has directed that
+Restarting the app in a saved standby state now passes a one-press native wake
+test, both without a MAC address and with a synthetic MAC that cannot wake the
+fixture: `/Users/amsh/worktrees/tvVNC/power-restored-final.xml` and
+`/Users/amsh/worktrees/tvVNC/power-restored-mac.xml`. An actual 102-byte WOL packet
+was captured before enabling native keys; no late power toggle followed it.
+Evidence: `/Users/amsh/worktrees/tvVNC/wake-fence-evidence.txt`. This is not a
+claim of physical-TV WOL support. The Power job still waits for catalog work
+needed by macros, but the UI stops claiming the TV is waking once On is observed.
+
+The public policy is live at https://amersheeny.github.io/tvvnc/ and its fetched
+SHA-256 matches the generated bundled-policy page. Privacy, reviewer access,
+Advertising ID, Health, Ads, Government and Financial declarations are saved in
+Play Console. Data safety answers are saved as a draft pending the required
+audience choice. IARC terms acceptance and audience selection await the publisher.
+Final PR publication checks, remaining Console setup, bundle upload and submission
+are unfinished. No new agent-blocking gate, hook or custom workflow,
+VPN, companion or app cloud service has been installed. The user has directed that
 no further scope be added. Progress is tracked at
 https://github.com/amersheeny/tvvnc/issues/1; app PR:
 https://github.com/amersheeny/tvvnc/pull/2.
