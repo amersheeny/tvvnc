@@ -1,0 +1,27 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: unset
+- tapOn: "Find TVs"
+- tapOn:
+    id: "com.android.permissioncontroller:id/permission_deny_button"
+- tapOn: "Find TVs"
+- tapOn:
+    id: "com.android.permissioncontroller:id/permission_deny_and_dont_ask_again_button"
+- tapOn: "Find TVs"
+- assertVisible: "Open phone settings"
+- takeScreenshot: permanent-denial
+- tapOn: "Open phone settings"
+- assertVisible: "Permissions"
+- takeScreenshot: settings-recovery-destination
+- tapOn: "Permissions"
+- tapOn: "Nearby devices"
+- tapOn: "Allow"
+- back
+- back
+- back
+- assertVisible: "Your TVs"
+- assertNotVisible: "Open phone settings"
+- takeScreenshot: permission-restored

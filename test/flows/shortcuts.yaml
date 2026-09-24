@@ -1,0 +1,28 @@
+appId: com.asheeny.tvvnc
+---
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Shortcuts.*"
+- runFlow:
+    when:
+      visible: "(?s)Local test shortcut.*"
+    commands:
+      - tapOn: "Delete"
+      - stopApp
+      - launchApp
+      - tapOn: "(?s)Protocol test.*10.0.2.2.*"
+      - tapOn: "Open navigation menu"
+      - tapOn: "(?s)Shortcuts.*"
+- tapOn: "Add shortcut"
+- tapOn: "Shortcut name"
+- inputText: "Local test shortcut"
+- hideKeyboard
+- tapOn: "Add step"
+- tapOn: "Go Home"
+- tapOn: "Save"
+- assertVisible: "(?s)Local test shortcut.*"
+- takeScreenshot: shortcut-saved
+- tapOn: "Delete"
+- assertVisible: "(?s)Deleted shortcut “Local test shortcut”.*"
+- tapOn: "Undo"
+- assertVisible: "(?s)Local test shortcut.*"
+- takeScreenshot: shortcut-restored

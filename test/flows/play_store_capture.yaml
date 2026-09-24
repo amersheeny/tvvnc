@@ -1,0 +1,42 @@
+appId: com.asheeny.tvvnc
+---
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Remote.*"
+- extendedWaitUntil:
+    visible: "(?s).*Connected.*On"
+    timeout: 20000
+- tapOn: "Show menu"
+- tapOn: "Edit"
+- longPressOn: "TV name"
+- tapOn: "Select all"
+- eraseText: 1
+- inputText: "Demo TV"
+- hideKeyboard
+- tapOn: "Save"
+- assertVisible: "Demo TV"
+- extendedWaitUntil:
+    visible: "Live TV screen"
+    timeout: 20000
+- assertVisible: "Power"
+- takeScreenshot: remote
+- tapOn: "Show menu"
+- takeScreenshot: remote-menu
+- back
+- tapOn: "Keyboard"
+- assertVisible: "Search for a film"
+- takeScreenshot: keyboard
+- tapOn: "Leave Keyboard"
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)All buttons.*"
+- takeScreenshot: all-buttons
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Remote.*"
+- tapOn: "Show menu"
+- tapOn: "Edit"
+- longPressOn: "TV name"
+- tapOn: "Select all"
+- eraseText: 1
+- inputText: "Editor protocol fixture"
+- hideKeyboard
+- tapOn: "Save"
+- assertVisible: "Editor protocol fixture"

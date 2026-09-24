@@ -1,0 +1,25 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp
+- tapOn: '(?s)Resize fixture.*'
+- extendedWaitUntil:
+    visible: 'Live TV screen'
+    timeout: 30000
+- tapOn: 'Open navigation menu'
+- tapOn: '(?s)Keyboard.*'
+- inputText: 'Compact menu fixture'
+- setOrientation: LANDSCAPE_LEFT
+- assertVisible: 'Compact menu fixture'
+- assertNotVisible: 'Screen options'
+- assertVisible: 'Zoom in'
+- assertVisible: '(?s).*Screen height.*'
+- takeScreenshot: compact-band-visible
+- tapOn: 'Zoom in'
+- assertVisible: 'Compact menu fixture'
+- takeScreenshot: compact-options-selected
+- tapOn: 'Compact menu fixture'
+- assertVisible: 'Zoom in'
+- takeScreenshot: compact-editor-restored
+- setOrientation: PORTRAIT
+- tapOn: 'Leave Keyboard'
+- takeScreenshot: compact-returned-to-remote

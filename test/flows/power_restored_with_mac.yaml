@@ -1,0 +1,21 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp
+- tapOn: "(?s)Editor protocol fixture.*"
+- extendedWaitUntil:
+    visible: "(?s).*Connected.*On"
+    timeout: 20000
+- tapOn: "Show menu"
+- tapOn: "Edit"
+- tapOn: "(?s)Settings.*"
+- scrollUntilVisible:
+    element: "Network MAC address"
+    direction: DOWN
+- tapOn: "Network MAC address"
+- inputText: "02:00:00:00:00:01"
+- hideKeyboard
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "(?s).*Connected.*On"
+    timeout: 20000
+- runFlow: power_restored_standby.yaml
