@@ -277,7 +277,7 @@ abstract final class Copy {
     "screenHidden": "Screen hidden. Remote controls remain available.",
     "privateDraft": "Text you hide is cleared when you leave the Keyboard or switch TVs, even if you show it again.",
     "powerOffFirst": "Turn the TV on before sending other controls.",
-    "standbyIntent": "The app will not reconnect until you turn the TV on here, even if it is turned on another way.",
+    "standbyIntent": "Automatic reconnect resumes once the app sees this TV is on, however it was turned on. To turn it on from here, try Power on the Remote screen.",
     "notConnected":
         "Not connected to this TV. Choose Connect to send controls.",
     "notCheckedYet": "Not checked yet",
