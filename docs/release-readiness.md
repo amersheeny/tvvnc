@@ -10,8 +10,8 @@ The headed Android emulator is the release-validation environment. The owner's
 physical phone is optional supplementary coverage, never a release prerequisite.
 Post-fix behavior must be exercised on the actual app running in that emulator;
 physical-TV observations remain separately labelled and are not inferred from
-protocol fixtures. Source publication is a draft checkpoint, not release
-sign-off. Native dependency URLs name public forks, not local filesystem paths.
+protocol fixtures. App-source PR #2 is open and no longer a draft; that is not a
+Google Play submission. Native dependency URLs name public forks, not local filesystem paths.
 
 The current Power code retains a usable authenticated native toggle in standby;
 Sony/Wake-on-LAN recovery remains available when that route is unavailable.
@@ -28,12 +28,12 @@ Native dependency URLs are public, immutable gitlinks. Store text, source-code
 directions, license notices, artwork and new 1080×1920 screenshots are prepared.
 The TV image is an AI-generated illustration displayed through the real viewer.
 
-The current signed AAB was built from the application source at `e0cd069`:
+The current signed AAB was built from the application source at `3af0bda`:
 `/Users/amsh/worktrees/tvVNC/worktree/build/app/outputs/bundle/release/app-release.aab`.
 Its SHA-256 is
-`5e6704b7425997b074861253e0257b337ee61d12933394dd17450a019055aab0`.
+`a9c4310256c07cd870a65a34966e51820a2639e707890f07b3de26920bfa6376`.
 The signed APK SHA-256 is
-`bf3ec050d18703172a73790a1e7a856f440c5c02f904bb44fa3dcf2a3a6d7afe`.
+`434aa2cf488a9aeb9e1da7d0667b2d74ad9c5938f833625cf248c20cc87dd752`.
 Subsequent commits add only test-flow/evidence records, not application build inputs.
 The older signed artifacts mentioned in historical checkpoints are superseded.
 
@@ -42,10 +42,10 @@ Flutter analysis, an actual Android runtime probe of minified protobuf/pairing
 classes, APK signature verification and 16 KB ZIP alignment. All twelve expected
 license/notice files match their source bytes in the signed AAB and APK.
 Evidence logs are `/Users/amsh/worktrees/tvVNC/release-final-flutter-tests.log`,
-`/Users/amsh/worktrees/tvVNC/wake-release-app-tests.log`,
+`/Users/amsh/worktrees/tvVNC/shortcut-app-tests.log`,
 `/Users/amsh/worktrees/tvVNC/release-final-analyze.log`,
-`/Users/amsh/worktrees/tvVNC/wake-release-art-probe.log`, and
-`/Users/amsh/worktrees/tvVNC/wake-release-apk-signature.log`.
+`/Users/amsh/worktrees/tvVNC/shortcut-art-probe.log`, and
+`/Users/amsh/worktrees/tvVNC/shortcut-apk-signature.log`.
 Rendered runs are `/Users/amsh/worktrees/tvVNC/power-native-fallback-after`,
 `/Users/amsh/worktrees/tvVNC/sony-power-release`,
 `/Users/amsh/worktrees/tvVNC/wake-auth-diagnostic-confirm`,
@@ -78,6 +78,33 @@ Evidence: `/Users/amsh/worktrees/tvVNC/wake-release-wol-packet-check.log` and
 `/Users/amsh/worktrees/tvVNC/wake-release-wol-repeat.xml`. The authentication-only
 failure remains visible when no alternative wake route can send, verified in
 `/Users/amsh/worktrees/tvVNC/wake-release-auth.xml`.
+
+The two minor findings carried by PR #2 are addressed on the follow-up branch
+`fix/manual-shortcut-interruption`. Rejected manual commands again interrupt a
+running shortcut. A single-step Wake shortcut hands its unresolved wake to
+manual Power without sending a second toggle. Fresh signed-app evidence is
+`/Users/amsh/worktrees/tvVNC/macro-takeover-after.xml` and
+`/Users/amsh/worktrees/tvVNC/macro-volume-up-after.xml`.
+
+The volume case uses a held slider gesture, changes the fixture's native maximum
+from 100 to 50, observes the slider accessibility value clamp to 50, then releases
+the gesture. The parent APK reports rejection but keeps waking; the fixed APK
+reports the same rejection and promptly stops the shortcut. The releases occurred
+about 46 seconds after shortcut start, before its 90-second timeout; the fixed
+flow also rejects the timeout-error toast. Baseline failure:
+`/Users/amsh/worktrees/tvVNC/macro-volume-up-before.xml`. The first preparation
+attempt exceeded a conservative whole-flow timing bound and is not this proof.
+Keyboard edits still match the receiver in
+`/Users/amsh/worktrees/tvVNC/shortcut-keyboard-after.xml`.
+
+For replay, the macro flows require the existing paired protocol fixture on the
+owned headed emulator. Its Sony key is set by the setup flow. Start each leg with
+active power, features 615, ignoreWake true, maximum 100 and volume 20. During
+the volume leg, use Android input DOWN/MOVE/UP while the pointer remains held;
+change maximum only after the slider draft exceeds 50, and release only after
+the new accessible value is 50 and the rejection assertion is listening. Require
+the rejection and stopped-shortcut observation within 60 seconds of macro start.
+The TV preview remains an illustration, not an oracle for the volume or keyboard.
 
 The public policy is live at https://amersheeny.github.io/tvvnc/ and its fetched
 SHA-256 matches the generated bundled-policy page. Privacy, reviewer access,
