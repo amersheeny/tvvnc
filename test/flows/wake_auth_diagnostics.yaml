@@ -1,16 +1,14 @@
 appId: com.asheeny.tvvnc
 ---
 - tapOn: "Open navigation menu"
+- tapOn: "(?s)Remote.*"
+- tapOn: "Open navigation menu"
 - tapOn: "(?s)Diagnostics.*"
 - tapOn: "Test connections"
 - scrollUntilVisible:
-    element:
-      text: "Test connections"
-      index: 1
+    element: "Service errors"
     direction: DOWN
-- tapOn:
-    text: "Test connections"
-    index: 1
+- tapOn: "(?s)Test connections,.*"
 - scrollUntilVisible:
     element: '(?s).*"lastError": "authentication_required".*'
     direction: DOWN
