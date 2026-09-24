@@ -1,0 +1,15 @@
+appId: com.asheeny.tvvnc
+---
+- extendedWaitUntil:
+    visible: "The command was not sent."
+    timeout: 5000
+- takeScreenshot: rejected-volume-command
+- extendedWaitUntil:
+    notVisible: "(?s)Waking TV.*"
+    timeout: 3000
+- assertNotVisible: "The shortcut stopped because a step could not be confirmed. Earlier steps may have already run. Check the TV."
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Shortcuts.*"
+- assertVisible: "Run"
+- assertNotVisible: "Stop shortcut"
+- takeScreenshot: rejected-volume-stops-shortcut
