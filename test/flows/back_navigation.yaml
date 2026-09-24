@@ -1,0 +1,69 @@
+appId: com.asheeny.tvvnc
+---
+- stopApp
+- launchApp
+- tapOn: "${TV_PATTERN}"
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Keyboard.*"
+- assertVisible: "Hide text"
+- tapOn: "Type or paste text"
+- inputText: "navigation fixture"
+- assertVisible: "Hide text"
+- assertVisible: "navigation fixture"
+- takeScreenshot: keyboard-before-page-back
+- back
+- assertVisible: "Keyboard"
+- takeScreenshot: returned-to-remote
+- back
+- assertVisible: "Your TVs"
+- takeScreenshot: returned-to-devices
+- tapOn: "${TV_PATTERN}"
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Keyboard.*"
+- tapOn: "Clear"
+- tapOn: "Hide text"
+- tapOn: "Type or paste text"
+- inputText: "private navigation fixture"
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Apps.*"
+- back
+- assertVisible: "Hide text"
+- assertVisible: "Type or paste text"
+- assertNotVisible: "private navigation fixture"
+- takeScreenshot: private-draft-not-restored
+- tapOn: "Open navigation menu"
+- back
+- assertVisible: "Hide text"
+- takeScreenshot: drawer-dismissed-on-keyboard
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Settings.*"
+- tapOn: "Customize remote"
+- back
+- assertVisible: "Customize remote"
+- takeScreenshot: customize-returned-to-settings
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Shortcuts.*"
+- tapOn: "Add shortcut"
+- back
+- assertVisible: "Add shortcut"
+- back
+- assertVisible: "Customize remote"
+- back
+- assertVisible: "Hide text"
+- back
+- assertVisible: "Keyboard"
+- tapOn: "Full screen"
+- back
+- assertVisible: "Keyboard"
+- takeScreenshot: fullscreen-returned-to-remote
+- back
+- assertVisible: "Your TVs"
+- tapOn: "Enter address"
+- back
+- assertVisible: "Your TVs"
+- takeScreenshot: dialog-dismissed-at-root
+- back
+- takeScreenshot: root-returns-to-android
+# The caller verifies Android's resumed application is no longer
+# com.asheeny.tvvnc. Text alone is not an oracle: the retained old test app
+# can be the previous Android task and has the same Your TVs affordance.

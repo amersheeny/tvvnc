@@ -1,0 +1,15 @@
+appId: com.asheeny.tvvnc
+---
+# This leg requires a visible software keyboard, not a hardware-keyboard
+# candidate strip. The caller records IME visibility and the device setup.
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Keyboard.*"
+- takeScreenshot: software-keyboard-before-back
+- back
+- assertVisible: "Hide text"
+- takeScreenshot: software-keyboard-dismissed
+- back
+- assertVisible: "Keyboard"
+- takeScreenshot: keyboard-page-returned-to-remote
+- back
+- assertVisible: "Your TVs"

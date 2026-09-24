@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Runtime TV addresses cannot be enumerated here. LocalHttp validates
+         numeric LAN destinations and refuses redirects before forwarding secrets. -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

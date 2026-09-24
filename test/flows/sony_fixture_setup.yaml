@@ -1,0 +1,20 @@
+appId: com.asheeny.tvvnc
+---
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Remote.*"
+- extendedWaitUntil:
+    visible: "(?s).*Connected.*On"
+    timeout: 20000
+- tapOn: "Show menu"
+- tapOn: "Edit"
+- tapOn: "(?s)Settings.*"
+- scrollUntilVisible:
+    element: "Sony pre-shared key"
+    direction: DOWN
+- tapOn: "Sony pre-shared key"
+- inputText: "fixture-only"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "(?s).*Connected.*On"
+    timeout: 20000
+- runFlow: power_native_fallback.yaml

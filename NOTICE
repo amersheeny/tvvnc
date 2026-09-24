@@ -1,5 +1,7 @@
 TV VNC — GPL-3.0-or-later
 
+Source code and build instructions: https://github.com/amersheeny/tvvnc
+
 The app links LibVNCClient from LibVNCServer (GPL-2.0-or-later), pinned by
 the native/libvncserver Git submodule. Its copyright and license notices remain
 in that dependency's COPYING and AUTHORS files.
@@ -9,12 +11,17 @@ That historical filename retains the project's earlier name for traceability.
 
 JPEG decoding uses libjpeg-turbo, pinned by native/libjpeg-turbo. Its component
 licenses and attribution are in that dependency's LICENSE.md.
+This software is based in part on the work of the Independent JPEG Group.
 
 Android TV control uses the androidtv-remote library extracted in a maintained
 ScreenCast fork (Apache-2.0), pinned by native/androidtv-remote. Upstream history,
 license and modification notices remain in the dependency repository. Generated
 protocol messages use androidtvremote2's Apache-2.0 schemas, pinned by its nested
 protocol-schemas submodule.
+
+Protocol Buffers Java Lite uses the BSD-3-Clause license bundled in
+assets/licenses/protobuf-LICENSE.txt. Its source is available at
+https://github.com/protocolbuffers/protobuf/tree/v36.2.
 
 Sony encrypted-text interoperability was cross-checked against the documented
 Sony API and Brandon Dusseau's braviaproapi Encryption implementation (MIT).
@@ -23,5 +30,15 @@ No braviaproapi source is included in this application.
 Bounded, cancellable Sony HTTP requests use OkHttp 5.5.0 (Apache-2.0),
 published as com.squareup.okhttp3:okhttp. Its upstream source and license are
 available at https://github.com/lysine-dev/okhttp.
+
+OkHttp includes Public Suffix List data under Mozilla Public License 2.0,
+bundled in assets/licenses/MPL-2.0.txt. The list's source and license are at
+https://publicsuffix.org/list/ and the OkHttp release source at
+https://github.com/lysine-dev/okhttp/tree/parent-5.5.0.
+
+Okio, Kotlin standard library, Kotlin coroutines, JetBrains annotations,
+AndroidX and Guava ListenableFuture are distributed under Apache-2.0, whose
+license text is bundled at native/androidtv-remote/LICENSE. Flutter and Dart
+dependency notices are supplied in Flutter's NOTICES.Z asset.
 
 No analytics, advertising SDK, cloud relay or VPN engine is included in Phase 0.

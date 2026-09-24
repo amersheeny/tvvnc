@@ -1,0 +1,12 @@
+appId: com.asheeny.tvvnc
+---
+- runFlow: macro_wake_setup.yaml
+- tapOn: "Power"
+- assertVisible: "(?s)Waking TV.*"
+- takeScreenshot: manual-power-preserves-wake
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Shortcuts.*"
+- assertVisible: "Run"
+- assertNotVisible: "Stop shortcut"
+- assertVisible: "(?s)Waking TV.*"
+- takeScreenshot: shortcut-released-wake

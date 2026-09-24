@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <path fill="#006C67" d="M0 0H1024V500H0Z"/>
+  <g transform="translate(66 67) scale(3.3)">
+    <path fill="#F4FBF9" d="M28,28H80Q86,28 86,34V68Q86,74 80,74H59V80H70V85H38V80H49V74H28Q22,74 22,68V34Q22,28 28,28Z"/>
+    <path fill="#006C67" d="M30,36H78V66H30Z"/>
+    <path fill="#F4FBF9" d="M48,42L64,51L48,60Z"/>
+  </g>
+  <text x="452" y="282" fill="#F4FBF9" font-family="Arial,sans-serif" font-size="96" font-weight="700">TV VNC</text>
+</svg>

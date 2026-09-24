@@ -1,0 +1,7 @@
+appId: com.asheeny.tvvnc
+---
+- runFlow: macro_wake_setup.yaml
+- scrollUntilVisible:
+    element: "(?s)Volume.*20.*"
+    direction: DOWN
+- takeScreenshot: shortcut-volume-before-gesture

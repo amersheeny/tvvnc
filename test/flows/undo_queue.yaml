@@ -1,0 +1,31 @@
+appId: com.asheeny.tvvnc
+---
+- stopApp
+- launchApp
+- tapOn: "(?s)Protocol test.*10.0.2.2.*"
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Shortcuts.*"
+- tapOn: "Delete"
+- tapOn: "Dismiss"
+- tapOn: "Add shortcut"
+- tapOn: "Shortcut name"
+- inputText: "Queue item"
+- hideKeyboard
+- tapOn: "Add step"
+- tapOn: "Go Home"
+- tapOn: "Save"
+- tapOn: "Add shortcut"
+- tapOn: "Shortcut name"
+- inputText: "Queue item"
+- hideKeyboard
+- tapOn: "Add step"
+- tapOn: "Wait for the TV to be ready"
+- tapOn: "Save"
+- tapOn:
+    text: "Delete"
+    index: 0
+- tapOn:
+    text: "Delete"
+    index: 0
+- assertVisible: "(?s).*Deletion 2.*Protocol test.*"
+- takeScreenshot: numbered-undo-active

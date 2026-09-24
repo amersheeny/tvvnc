@@ -1,0 +1,10 @@
+appId: com.asheeny.tvvnc
+---
+- tapOn:
+    id: "com.android.permissioncontroller:id/permission_allow_button"
+- extendedWaitUntil:
+    visible: "Connected"
+    timeout: 30000
+- takeScreenshot: viewer-16k-pages
+- tapOn: "Right"
+- tapOn: "Left"

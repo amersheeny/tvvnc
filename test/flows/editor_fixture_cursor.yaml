@@ -1,0 +1,12 @@
+appId: com.asheeny.tvvnc
+---
+- assertVisible: "Example search"
+- tapOn: "Example search"
+- scrollUntilVisible:
+    element: "Move cursor left"
+    direction: DOWN
+- tapOn: "Move cursor left"
+- takeScreenshot: native-cursor-left
+- inputText: "X"
+- assertVisible: "Example searcXh"
+- takeScreenshot: native-cursor-insertion
