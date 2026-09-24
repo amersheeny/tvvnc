@@ -8,7 +8,11 @@ appId: com.asheeny.tvvnc
 - takeScreenshot: fixture-name
 - tapOn: "TV address"
 - inputText: "10.0.2.15"
+- hideKeyboard
 - tapOn: "(?s)Settings.*"
+- scrollUntilVisible:
+    element: "VNC port"
+    direction: DOWN
 - tapOn: "VNC port"
 - eraseText
 - inputText: "15900"

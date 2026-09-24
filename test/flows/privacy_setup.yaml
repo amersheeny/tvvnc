@@ -1,0 +1,20 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp
+- assertVisible: "Your TVs"
+- assertVisible: "(?s)Set up screen sharing on your TV.*"
+- takeScreenshot: setup-note
+- tapOn: "Open navigation menu"
+- scrollUntilVisible:
+    element: "(?s)Privacy policy.*"
+    direction: DOWN
+- tapOn: "(?s)Privacy policy.*"
+- assertVisible: "TV VNC Privacy Policy"
+- takeScreenshot: privacy-top
+- scrollUntilVisible:
+    element: "Connection security"
+    direction: DOWN
+- takeScreenshot: privacy-security
+- back
+- assertVisible: "Your TVs"
+- assertVisible: "(?s)Set up screen sharing on your TV.*"
