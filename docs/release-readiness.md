@@ -28,24 +28,24 @@ Native dependency URLs are public, immutable gitlinks. Store text, source-code
 directions, license notices, artwork and new 1080×1920 screenshots are prepared.
 The TV image is an AI-generated illustration displayed through the real viewer.
 
-The current signed AAB was built from the application source at `a50a066`:
+The current signed AAB was built from the application source at `e0cd069`:
 `/Users/amsh/worktrees/tvVNC/worktree/build/app/outputs/bundle/release/app-release.aab`.
 Its SHA-256 is
-`ee707f1cb2291b4960a806dafae5f9f699c13263088d8c33ebc70a9fa4498dfe`.
+`5e6704b7425997b074861253e0257b337ee61d12933394dd17450a019055aab0`.
 The signed APK SHA-256 is
-`362b6a48efae6ff408d4a5d6c8d486bfaa87cd9e7dbb1d03e7c69887d1ef3df0`.
+`bf3ec050d18703172a73790a1e7a856f440c5c02f904bb44fa3dcf2a3a6d7afe`.
 Subsequent commits add only test-flow/evidence records, not application build inputs.
 The older signed artifacts mentioned in historical checkpoints are superseded.
 
-Current evidence: 169 Flutter tests, 44 Android application unit tests, clean
+Current evidence: 169 Flutter tests, 49 Android application unit tests, clean
 Flutter analysis, an actual Android runtime probe of minified protobuf/pairing
 classes, APK signature verification and 16 KB ZIP alignment. All twelve expected
 license/notice files match their source bytes in the signed AAB and APK.
 Evidence logs are `/Users/amsh/worktrees/tvVNC/release-final-flutter-tests.log`,
-`/Users/amsh/worktrees/tvVNC/release-power-app-units-fixed.log`,
+`/Users/amsh/worktrees/tvVNC/wake-release-app-tests.log`,
 `/Users/amsh/worktrees/tvVNC/release-final-analyze.log`,
-`/Users/amsh/worktrees/tvVNC/release-current-art-probe.log`, and
-`/Users/amsh/worktrees/tvVNC/release-current-apk-signature.log`.
+`/Users/amsh/worktrees/tvVNC/wake-release-art-probe.log`, and
+`/Users/amsh/worktrees/tvVNC/wake-release-apk-signature.log`.
 Rendered runs are `/Users/amsh/worktrees/tvVNC/power-native-fallback-after`,
 `/Users/amsh/worktrees/tvVNC/sony-power-release`,
 `/Users/amsh/worktrees/tvVNC/wake-auth-diagnostic-confirm`,
@@ -61,10 +61,30 @@ Evidence: `/Users/amsh/worktrees/tvVNC/wake-fence-evidence.txt`. This is not a
 claim of physical-TV WOL support. The Power job still waits for catalog work
 needed by macros, but the UI stops claiming the TV is waking once On is observed.
 
+The final wake regression set additionally covers a repeated Power tap during an
+unresolved wake, Sony-first recovery after restart, and the distinction between
+an unsent WOL failure and possibly delivered packets. The repeated-tap run is
+`/Users/amsh/worktrees/tvVNC/power-repeat-after.xml`; the receiver recorded native
+Up but no additional Power toggle. Fresh restart tests with rejected Sony
+credentials passed without and with a synthetic MAC in
+`/Users/amsh/worktrees/tvVNC/wake-release-restored.xml` and
+`/Users/amsh/worktrees/tvVNC/wake-release-mac.xml`. Native keyboard prefill,
+per-keystroke editing, deletion and Search passed in
+`/Users/amsh/worktrees/tvVNC/wake-release-keyboard.xml`, with matching receiver
+events. These are tests of the signed APK on the headed emulator. The fresh WOL
+capture contains three complete 102-byte packets across the broadcast/unicast
+destinations; enabling native keys afterward and repeating Power sent no toggle.
+Evidence: `/Users/amsh/worktrees/tvVNC/wake-release-wol-packet-check.log` and
+`/Users/amsh/worktrees/tvVNC/wake-release-wol-repeat.xml`. The authentication-only
+failure remains visible when no alternative wake route can send, verified in
+`/Users/amsh/worktrees/tvVNC/wake-release-auth.xml`.
+
 The public policy is live at https://amersheeny.github.io/tvvnc/ and its fetched
 SHA-256 matches the generated bundled-policy page. Privacy, reviewer access,
 Advertising ID, Health, Ads, Government and Financial declarations are saved in
-Play Console. Data safety answers are saved as a draft pending the required
+Play Console. The Tools category, support email and HTTPS project website are
+also saved; the dashboard reports 7 of 11 initial setup tasks complete. Data
+safety answers are saved as a draft pending the required
 audience choice. IARC terms acceptance and audience selection await the publisher.
 Final PR publication checks, remaining Console setup, bundle upload and submission
 are unfinished. No new agent-blocking gate, hook or custom workflow,

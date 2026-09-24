@@ -72,6 +72,11 @@ class CapabilityRouterTest {
         assertEquals(Delivery.NOT_SENT, result.delivery)
         assertNotNull(result.errorCode)
     }
+    @Test fun anIpv6OnlyTargetWithoutAnIpv4BroadcastSendsNothing() = runBlocking {
+        val result = TvController.sendWake("fd00::1", "02:00:00:00:00:01")
+        assertEquals(Delivery.NOT_SENT, result.delivery)
+        assertEquals("network_unavailable", result.errorCode)
+    }
     private fun command(kind: CommandKind = CommandKind.KEY, session: Long = 1) = TvCommand("a", session,
         kind, 19, null, null, "press", null, false, false, false)
     private class Port(override val id: String, var result: CommandOutcome) : CommandTransport {
