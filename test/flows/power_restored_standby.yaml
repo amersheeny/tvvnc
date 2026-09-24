@@ -1,0 +1,24 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp
+- tapOn: "(?s)Editor protocol fixture.*"
+- extendedWaitUntil:
+    visible: "(?s).*Connected.*On"
+    timeout: 20000
+- tapOn: "Power"
+- extendedWaitUntil:
+    visible: "(?s).*Standby.*"
+    timeout: 15000
+- stopApp
+- launchApp
+- tapOn: "(?s)Editor protocol fixture.*"
+- extendedWaitUntil:
+    visible: "(?s).*Automatic reconnect paused.*"
+    timeout: 15000
+- assertVisible: "Power"
+- takeScreenshot: restored-standby
+- tapOn: "Power"
+- extendedWaitUntil:
+    visible: "(?s).*Connected.*On"
+    timeout: 20000
+- takeScreenshot: restored-power-on

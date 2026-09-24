@@ -67,6 +67,11 @@ class CapabilityRouterTest {
         val mac = byteArrayOf(0x02, 0x11, 0x22, 0x33, 0x44, 0x55)
         for (index in 0 until 16) assertArrayEquals(mac, packet.copyOfRange(6 + index * 6, 12 + index * 6))
     }
+    @Test fun wakePreflightFailureIsDefinitelyNotSent() = runBlocking {
+        val result = TvController.sendWake("127.0.0.1", "invalid")
+        assertEquals(Delivery.NOT_SENT, result.delivery)
+        assertNotNull(result.errorCode)
+    }
     private fun command(kind: CommandKind = CommandKind.KEY, session: Long = 1) = TvCommand("a", session,
         kind, 19, null, null, "press", null, false, false, false)
     private class Port(override val id: String, var result: CommandOutcome) : CommandTransport {

@@ -122,7 +122,6 @@ class TvController(private val context: Context, private val textures: TextureRe
     }
     override suspend fun execute(command: TvCommand): CommandOutcome {
         val session = target(command.deviceId, command.sessionId)
-        session.cancelMacro()
         return session.execute(command)
     }
     override suspend fun startScreen(deviceId: String, sessionId: Long): ScreenInfo {
@@ -462,10 +461,16 @@ class TvController(private val context: Context, private val textures: TextureRe
             if ((command.code != null && command.code !in 0..65535) || (command.number != null && command.number !in 0..Int.MAX_VALUE.toLong()))
                 return CommandOutcome(Delivery.NOT_SENT, null, "invalid_command")
             val reportedName = if (command.kind == CommandKind.SONY) sony.state.buttons.firstOrNull { it.id == command.value }?.name else null
-            if (reportedName == "WakeUp") return wake(command.copy(kind = CommandKind.POWER_ON), macroId.takeIf { fromMacro })
+            if (reportedName == "WakeUp") return execute(command.copy(kind = CommandKind.POWER_ON), fromMacro)
             if (reportedName in setOf("TvPower", "Power")) return execute(command.copy(kind = CommandKind.POWER_TOGGLE), fromMacro)
+            if (!fromMacro) {
+                if (command.kind in setOf(CommandKind.POWER_ON, CommandKind.POWER_TOGGLE) &&
+                    waking?.isActive == true && !panelOnObserved()) wakeOwnerMacro = null
+                cancelMacro()
+            }
             if (command.kind == CommandKind.POWER_ON) return wake(command, macroId.takeIf { fromMacro })
-            if (command.kind == CommandKind.POWER_TOGGLE && PowerObservation.shouldWakeToggle(sony.state.power, off, remotePort.accepts(command)))
+            if (command.kind == CommandKind.POWER_TOGGLE && PowerObservation.shouldWakeToggle(
+                sony.state.power, off, remotePort.accepts(command), waking?.isActive == true && !panelOnObserved()))
                 return wake(command.copy(kind = CommandKind.POWER_ON), macroId.takeIf { fromMacro })
             if (command.kind == CommandKind.REBOOT && !command.userConfirmed)
                 return CommandOutcome(Delivery.NOT_SENT, null, "confirmation_required")
@@ -538,37 +543,47 @@ class TvController(private val context: Context, private val textures: TextureRe
                 var detectionTried = false
                 val remoteGenerations = mutableSetOf<Long>()
                 var wolSent = false
+                var wakeMayBeInFlight = false
                 var wakeError: String? = null
-                fun recordWakeError(code: String?) {
-                    if (code != null) { wakeError = code; error = code; publish() }
+                var wolError: String? = null
+                fun recordWakeOutcome(outcome: CommandOutcome) {
+                    wakeMayBeInFlight = PowerObservation.wakeMayBeInFlight(wakeMayBeInFlight, outcome.delivery)
+                    if (outcome.delivery == Delivery.REJECTED) wakeError = outcome.errorCode
                 }
                 try {
                     withTimeout(90_000) {
                         while (isActive && !closed && !off && foreground && permissions.networkAllowed()) {
-                            if (!sonyTried && sonyPort.accepts(command)) {
-                                sonyTried = true; recordWakeError(sonyPort.send(command).errorCode)
-                            }
-                            if (!wolSent && !profile.mac.isNullOrBlank()) {
-                                wolSent = true
-                                try { sendWake(profile.host, profile.mac!!) }
-                                catch (e: Exception) { if (e is CancellationException) throw e; recordWakeError(safeError(e)) }
-                            }
-                            val remoteEpoch = remote.connectionGeneration
-                            if (remotePort.accepts(command) && remoteGenerations.add(remoteEpoch)) recordWakeError(remotePort.send(command, remoteEpoch).errorCode)
-                            // Explicit wake authorizes discovery. A restored Off
-                            // intent has no cached method catalog in memory.
                             if (!detectionTried && sony.state.available && sony.state.methods.isEmpty()) {
                                 detectionTried = true; refreshSony(true)
-                            } else refreshSony(false, powerOnly = true)
+                            }
+                            if (!sonyTried && sonyPort.accepts(command)) {
+                                sonyTried = true; recordWakeOutcome(sonyPort.send(command))
+                            }
+                            if (!wakeMayBeInFlight) connectRemote()
+                            val remoteEpoch = remote.connectionGeneration
+                            sony.invalidatePower()
+                            refreshSony(false, powerOnly = true)
                             // Only a post-request observation may finish waking.
                             if (panelOnObserved()) {
                                 if (error == wakeError) error = null
                                 connectRemote(); ensureVnc(); refreshSony(true); return@withTimeout
                             }
+                            val toggle = command.copy(kind = CommandKind.POWER_TOGGLE)
+                            val s = sony.state; val r = remote.state.value
+                            if (remotePort.accepts(toggle) &&
+                                PowerObservation.canWakeWithToggle(wakeMayBeInFlight, s.power, r.androidOn.takeIf { r.connected }, panelIdentified(s, r)) &&
+                                remoteGenerations.add(remoteEpoch)) recordWakeOutcome(remotePort.send(toggle, remoteEpoch))
+                            if (!wolSent && !profile.mac.isNullOrBlank()) {
+                                wolSent = true
+                                val outcome = sendWake(profile.host, profile.mac!!)
+                                recordWakeOutcome(outcome)
+                                wolError = outcome.errorCode
+                            }
+                            if (!wakeMayBeInFlight && wakeError != null) { error = wakeError; publish() }
                             delay(1000)
                         }
                     }
-                } catch (_: TimeoutCancellationException) { error = wakeError ?: error ?: "wake_unconfirmed" }
+                } catch (_: TimeoutCancellationException) { error = wakeError ?: wolError ?: "wake_unconfirmed" }
                 catch (e: Exception) { if (e is CancellationException) throw e; error = safeError(e) }
                 finally {
                     if (waking === coroutineContext[Job]) { waking = null; wakeOwnerMacro = null }
@@ -578,11 +593,11 @@ class TvController(private val context: Context, private val textures: TextureRe
             waking!!.start(); publish()
             return CommandOutcome(Delivery.QUEUED, "wake", null)
         }
-        private fun panelOnObserved(): Boolean {
-            val s = sony.state; val r = remote.state.value
-            val panel = tvPowerIdentified || s.methods.containsKey("system.getPowerStatus") || r.vendor.equals("Sony", ignoreCase = true)
-            return PowerObservation.isOn(s.power, r.androidOn.takeIf { r.connected }, panel)
+        private fun panelOnObserved(s: SonySnapshot = sony.state, r: RemoteState = remote.state.value): Boolean {
+            return PowerObservation.isOn(s.power, r.androidOn.takeIf { r.connected }, panelIdentified(s, r))
         }
+        private fun panelIdentified(s: SonySnapshot, r: RemoteState) =
+            tvPowerIdentified || s.methods.containsKey("system.getPowerStatus") || r.vendor.equals("Sony", ignoreCase = true)
         fun runMacro(macroId: String) {
             val selectedMacro = profile.macros.firstOrNull { it.id == macroId } ?: throw LocalRequestError("macro_missing")
             cancelMacro()
@@ -832,7 +847,7 @@ class TvController(private val context: Context, private val textures: TextureRe
                 closed -> "disconnected"
                 !permissions.networkAllowed() -> "permissionRequired"
                 off -> "reconnectPaused"
-                waking?.isActive == true -> "waking"
+                waking?.isActive == true && !panelOnObserved(s, r) -> "waking"
                 r.connected || screen.connected -> "connected"
                 s.available && s.errors.values.contains("authentication_required") -> "needsSetup"
                 s.available -> "tvResponding"
@@ -947,25 +962,36 @@ class TvController(private val context: Context, private val textures: TextureRe
             require(bytes.size == 6)
             return ByteArray(102) { if (it < 6) 0xff.toByte() else bytes[(it - 6) % 6] }
         }
-        suspend fun sendWake(host: String, mac: String) = withContext(Dispatchers.IO) {
-            val packet = wakePacket(mac)
-            // A sleeping TV can disappear from mDNS. WOL is addressed by MAC
-            // and does not require a successful hostname lookup.
-            val target = try { InetAddress.getByName(PrivateNetwork.resolve(host)) }
-                catch (_: UnknownHostException) { null }
-            val broadcasts = NetworkInterface.getNetworkInterfaces().toList().filter { it.isUp && !it.isLoopback }
-                .flatMap { it.interfaceAddresses }.filter { iface ->
-                    val local = iface.address.address; val remote = target?.address
-                    local.size == 4 && iface.address.isSiteLocalAddress && (remote == null || remote.size == 4 && (0 until 4).all { i ->
-                        val shift = (iface.networkPrefixLength.toInt() - i * 8).coerceIn(0, 8)
-                        val mask = (0xff shl (8 - shift)) and 0xff
-                        local[i].toInt() and mask == remote[i].toInt() and mask
-                    })
-                }.mapNotNull { it.broadcast }.distinct()
-            if (broadcasts.isEmpty()) throw LocalRequestError("network_unavailable")
-            DatagramSocket().use { socket ->
-                socket.broadcast = true
-                (broadcasts + listOfNotNull(target)).forEach { ip -> socket.send(DatagramPacket(packet, packet.size, ip, 9)) }
+        suspend fun sendWake(host: String, mac: String): CommandOutcome = withContext(Dispatchers.IO) {
+            var attempted = false
+            try {
+                val packet = wakePacket(mac)
+                // A sleeping TV can disappear from mDNS. WOL is addressed by MAC
+                // and does not require a successful hostname lookup.
+                val target = try { InetAddress.getByName(PrivateNetwork.resolve(host)) }
+                    catch (_: UnknownHostException) { null }
+                val broadcasts = NetworkInterface.getNetworkInterfaces().toList().filter { it.isUp && !it.isLoopback }
+                    .flatMap { it.interfaceAddresses }.filter { iface ->
+                        val local = iface.address.address; val remote = target?.address
+                        local.size == 4 && iface.address.isSiteLocalAddress && (remote == null || remote.size == 4 && (0 until 4).all { i ->
+                            val shift = (iface.networkPrefixLength.toInt() - i * 8).coerceIn(0, 8)
+                            val mask = (0xff shl (8 - shift)) and 0xff
+                            local[i].toInt() and mask == remote[i].toInt() and mask
+                        })
+                    }.mapNotNull { it.broadcast }.distinct()
+                if (broadcasts.isEmpty()) throw LocalRequestError("network_unavailable")
+                DatagramSocket().use { socket ->
+                    socket.broadcast = true
+                    (broadcasts + listOfNotNull(target)).forEach { ip ->
+                        val datagram = DatagramPacket(packet, packet.size, ip, 9)
+                        attempted = true
+                        socket.send(datagram)
+                    }
+                }
+                CommandOutcome(Delivery.SENT, "wol", null)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                CommandOutcome(if (attempted) Delivery.UNKNOWN else Delivery.NOT_SENT, "wol", safeError(e))
             }
         }
     }

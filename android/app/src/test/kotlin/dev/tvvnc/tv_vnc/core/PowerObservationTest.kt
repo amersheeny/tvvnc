@@ -1,10 +1,33 @@
 package dev.tvvnc.tv_vnc.core
 
+import dev.tvvnc.tv_vnc.bridge.Delivery
 import org.junit.Assert.*
 import org.junit.Test
 import kotlinx.coroutines.*
 
 class PowerObservationTest {
+    @Test fun anotherPowerPressJoinsAnUnresolvedWakeEvenWithNativeKeysReady() {
+        for (panel in listOf("standby", null)) {
+            assertTrue(PowerObservation.shouldWakeToggle(panel, false, directToggleReady = true, unresolvedWake = true))
+        }
+        assertFalse(PowerObservation.shouldWakeToggle("on", false, directToggleReady = true, unresolvedWake = false))
+    }
+    @Test fun aPossiblyDeliveredWakeNeverAllowsALaterToggle() {
+        for (delivery in Delivery.entries) {
+            val possible = delivery in setOf(Delivery.SENT, Delivery.CONFIRMED, Delivery.UNKNOWN, Delivery.QUEUED)
+            val inFlight = PowerObservation.wakeMayBeInFlight(false, delivery)
+            assertEquals(possible, inFlight)
+            assertEquals(!possible, PowerObservation.canWakeWithToggle(inFlight, "standby", false, true))
+            assertTrue(PowerObservation.wakeMayBeInFlight(true, delivery))
+        }
+    }
+    @Test fun anUnsentWakeNeedsPositiveStandbyBeforeUsingAToggle() {
+        assertTrue(PowerObservation.canWakeWithToggle(false, "standby", true, true))
+        assertTrue(PowerObservation.canWakeWithToggle(false, null, false, false))
+        assertFalse(PowerObservation.canWakeWithToggle(false, null, false, true))
+        assertFalse(PowerObservation.canWakeWithToggle(false, null, null, false))
+        assertFalse(PowerObservation.canWakeWithToggle(false, "on", false, false))
+    }
     @Test fun aReadyNativeRemoteKeepsThePhysicalPowerToggleInEveryPanelState() {
         for (panel in listOf("on", "standby", null)) {
             for (offIntent in listOf(false, true)) {
@@ -45,6 +68,9 @@ class PowerObservationTest {
         assertFalse(PowerObservation.isOn(null, true, panelIdentified = true))
         assertTrue(PowerObservation.isOn("on", false, panelIdentified = true))
         assertFalse(PowerObservation.isOn("standby", true, panelIdentified = true))
+        assertFalse(PowerObservation.isStandby(null, false, panelIdentified = true))
+        assertFalse(PowerObservation.isStandby("on", false, panelIdentified = true))
+        assertTrue(PowerObservation.isStandby("standby", true, panelIdentified = true))
     }
     @Test fun aShortPowerWaitTimesOutWithoutAdvancingTheMacro() = runBlocking {
         var checks = 0
