@@ -1,0 +1,22 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp
+- tapOn: '(?s)Resize fixture.*'
+- extendedWaitUntil:
+    visible: 'Live TV screen'
+    timeout: 30000
+- tapOn: 'Open navigation menu'
+- tapOn: '(?s)Keyboard.*'
+- hideKeyboard
+- tapOn: 'Zoom in'
+- takeScreenshot: zoom-before-ime
+- tapOn: 'Type or paste text'
+- takeScreenshot: zoom-with-ime
+- setOrientation: LANDSCAPE_LEFT
+- extendedWaitUntil:
+    visible: 'Live TV screen'
+    timeout: 30000
+- takeScreenshot: refit-after-window-rotation
+- hideKeyboard
+- setOrientation: PORTRAIT
+- tapOn: 'Leave Keyboard'

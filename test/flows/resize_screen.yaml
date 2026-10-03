@@ -1,0 +1,83 @@
+appId: com.asheeny.tvvnc
+---
+# Requires the task-owned loopback RFB fixture on 127.0.0.1:15900.
+# Adds a harmless profile without clearing existing app data.
+- launchApp
+- runFlow:
+    when:
+      notVisible: '(?s)Resize fixture.*'
+    commands:
+      - tapOn: 'Enter address'
+      - tapOn: 'TV name'
+      - inputText: 'Resize fixture'
+      - hideKeyboard
+      - tapOn: 'TV address'
+      - inputText: '10.0.2.2'
+      - hideKeyboard
+      - tapOn: '(?s)Settings.*'
+      - tapOn: 'VNC port'
+      - eraseText
+      - inputText: '15900'
+      - hideKeyboard
+      - tapOn: 'VNC password'
+      - inputText: 'viewer-test'
+      - hideKeyboard
+      - tapOn: 'Save'
+- runFlow:
+    when:
+      visible: '(?s)Resize fixture.*10.0.2.2.*'
+    commands:
+      - tapOn: '(?s)Resize fixture.*10.0.2.2.*'
+- extendedWaitUntil:
+    visible: 'Live TV screen'
+    timeout: 30000
+- assertVisible: '(?s).*Screen height.*'
+- takeScreenshot: remote-default
+- swipe:
+    from:
+      text: '(?s).*Screen height.*'
+    direction: DOWN
+    duration: 900
+- takeScreenshot: remote-taller
+- swipe:
+    from:
+      text: '(?s).*Screen height.*'
+    direction: UP
+    duration: 900
+- takeScreenshot: remote-shorter
+- tapOn: 'Zoom in'
+- takeScreenshot: zoom-before-resize
+- swipe:
+    from:
+      text: '(?s).*Screen height.*'
+    direction: DOWN
+    duration: 900
+- takeScreenshot: zoom-after-resize
+- tapOn: 'Hide screen'
+- assertNotVisible: '(?s).*Screen height.*'
+- takeScreenshot: hidden
+- tapOn: 'Show screen'
+- assertVisible: '(?s).*Screen height.*'
+- takeScreenshot: restored
+- setOrientation: LANDSCAPE_LEFT
+- takeScreenshot: remote-wide
+- setOrientation: PORTRAIT
+- tapOn: 'Open navigation menu'
+- tapOn: '(?s)Keyboard.*'
+- assertVisible: 'Leave Keyboard'
+- takeScreenshot: keyboard-ime-default
+- swipe:
+    from:
+      text: '(?s).*Screen height.*'
+    direction: UP
+    duration: 900
+- inputText: 'Resize keyboard fixture'
+- assertVisible: 'Resize keyboard fixture'
+- takeScreenshot: keyboard-ime-resized
+- setOrientation: LANDSCAPE_LEFT
+- assertVisible: 'Resize keyboard fixture'
+- takeScreenshot: keyboard-wide-ime
+- setOrientation: PORTRAIT
+- tapOn: 'Leave Keyboard'
+- assertVisible: 'Open navigation menu'
+- takeScreenshot: returned-to-remote
