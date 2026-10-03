@@ -1,0 +1,18 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp
+- tapOn: '(?s)Resize fixture.*'
+- extendedWaitUntil:
+    visible: 'Live TV screen'
+    timeout: 30000
+- tapOn: 'Open navigation menu'
+- tapOn: '(?s)Keyboard.*'
+- inputText: 'Landscape fixture'
+- setOrientation: LANDSCAPE_LEFT
+- assertVisible: 'Landscape fixture'
+- takeScreenshot: keyboard-wide-ime
+- hideKeyboard
+- takeScreenshot: keyboard-wide-ime-hidden
+- setOrientation: PORTRAIT
+- tapOn: 'Leave Keyboard'
+- assertVisible: 'Open navigation menu'

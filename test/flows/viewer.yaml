@@ -1,0 +1,65 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp:
+    clearState: true
+    permissions:
+      android.permission.RECORD_AUDIO: deny
+- assertVisible: "Your TVs"
+- takeScreenshot: empty
+- tapOn: "Enter address"
+- tapOn: "TV name"
+- inputText: "Protocol test"
+- hideKeyboard
+- tapOn: "TV address"
+- inputText: "10.0.2.2"
+- hideKeyboard
+- tapOn: "(?s)Settings.*"
+- tapOn: "VNC port"
+- eraseText
+- inputText: "15900"
+- hideKeyboard
+- tapOn: "VNC password"
+- inputText: "viewer-test"
+- hideKeyboard
+- tapOn: "Save"
+- runFlow:
+    when:
+      visible:
+        id: "com.android.permissioncontroller:id/permission_allow_button"
+    commands:
+      - tapOn:
+          id: "com.android.permissioncontroller:id/permission_allow_button"
+- extendedWaitUntil:
+    visible: "Live TV screen"
+    timeout: 30000
+- tapOn: "Save screenshot"
+- assertVisible: "Screenshot saved on this phone."
+- takeScreenshot: viewer-portrait
+- tapOn: "Right"
+- tapOn: "Left"
+- tapOn: "Hide screen"
+- takeScreenshot: hidden
+- tapOn: "Right"
+- tapOn: "Show screen"
+- extendedWaitUntil:
+    visible: "Live TV screen"
+    timeout: 15000
+- tapOn: "Full screen"
+- assertVisible: "Live TV screen"
+- takeScreenshot: viewer-fullscreen
+- setOrientation: LANDSCAPE_LEFT
+- assertVisible: "Live TV screen"
+- takeScreenshot: viewer-landscape
+- back
+- setOrientation: PORTRAIT
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Keyboard.*"
+- assertVisible: "Live TV screen"
+- takeScreenshot: keyboard
+- inputText: "Local phrase 123"
+- tapOn: "Send"
+- hideKeyboard
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Diagnostics.*"
+- tapOn: "Test connections"
+- takeScreenshot: diagnostics

@@ -1,0 +1,30 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp
+- tapOn: '(?s)Resize fixture.*'
+- extendedWaitUntil:
+    visible: 'Live TV screen'
+    timeout: 30000
+- swipe:
+    from:
+      text: '(?s).*Screen height.*'
+    direction: UP
+    duration: 900
+- tapOn: 'Fit'
+- takeScreenshot: small-fit
+- tapOn: 'Zoom in'
+- takeScreenshot: small-zoom-once
+- swipe:
+    from:
+      text: '(?s).*Screen height.*'
+    direction: DOWN
+    duration: 900
+- takeScreenshot: same-zoom-taller
+- tapOn: 'Actual size'
+- takeScreenshot: actual-size-before
+- swipe:
+    from:
+      text: '(?s).*Screen height.*'
+    direction: UP
+    duration: 900
+- takeScreenshot: actual-size-after
