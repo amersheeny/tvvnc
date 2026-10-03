@@ -1,0 +1,18 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp
+- tapOn: "(?s)Editor protocol fixture.*"
+- extendedWaitUntil:
+    visible: "(?s).*Android TV Remote.*Connected.*"
+    timeout: 20000
+- tapOn: "Keyboard"
+- assertVisible: "Example search"
+- takeScreenshot: native-prefill
+- inputText: " now"
+- assertVisible: "Example search now"
+- takeScreenshot: native-edit
+- eraseText: 1
+- assertVisible: "Example search no"
+- takeScreenshot: native-delete
+- pressKey: Enter
+- takeScreenshot: native-submit

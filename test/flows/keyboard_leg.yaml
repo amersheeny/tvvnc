@@ -1,0 +1,12 @@
+appId: com.asheeny.tvvnc
+---
+- tapOn: "(?s)Keyboard.*"
+- assertVisible: "Hide text"
+- takeScreenshot: keyboard
+- inputText: "Local phrase 123"
+- tapOn: "Send"
+- hideKeyboard
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Diagnostics.*"
+- tapOn: "Test connections"
+- takeScreenshot: diagnostics
