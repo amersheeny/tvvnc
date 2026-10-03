@@ -1,0 +1,8 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp
+- tapOn: "(?s)Editor protocol fixture.*"
+- extendedWaitUntil:
+    visible: "(?s).*Android TV Remote.*Connected.*On"
+    timeout: 20000
+- runFlow: power_native_fallback.yaml

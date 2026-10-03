@@ -1,0 +1,14 @@
+appId: com.asheeny.tvvnc
+---
+- tapOn: "Show menu"
+- tapOn: "Edit"
+- tapOn: "(?s)Settings.*"
+- scrollUntilVisible:
+    element: "Network MAC address"
+    direction: DOWN
+- longPressOn: "Network MAC address"
+- tapOn: "Select all"
+- eraseText: 1
+- hideKeyboard
+- tapOn: "Save"
+- assertVisible: "Editor protocol fixture"

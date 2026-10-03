@@ -1,0 +1,6 @@
+appId: com.asheeny.tvvnc
+---
+- assertVisible: "(?s).*Standby.*"
+- tapOn: "Power"
+- assertVisible: "(?s)Waking TV.*"
+- takeScreenshot: wake-in-flight
