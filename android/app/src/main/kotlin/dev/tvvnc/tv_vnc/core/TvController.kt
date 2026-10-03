@@ -456,10 +456,6 @@ class TvController(private val context: Context, private val textures: TextureRe
         }
         suspend fun execute(command: TvCommand, fromMacro: Boolean = false): CommandOutcome {
             if (closed || !foreground) return CommandOutcome(Delivery.NOT_SENT, null, "not_connected")
-            if (command.kind == CommandKind.VOLUME && !CapabilityRouter.volumeContextMatches(command.value, volumeContext(remote.state.value, sony.state)))
-                return CommandOutcome(Delivery.NOT_SENT, null, "audio_output_changed")
-            if ((command.code != null && command.code !in 0..65535) || (command.number != null && command.number !in 0..Int.MAX_VALUE.toLong()))
-                return CommandOutcome(Delivery.NOT_SENT, null, "invalid_command")
             val reportedName = if (command.kind == CommandKind.SONY) sony.state.buttons.firstOrNull { it.id == command.value }?.name else null
             if (reportedName == "WakeUp") return execute(command.copy(kind = CommandKind.POWER_ON), fromMacro)
             if (reportedName in setOf("TvPower", "Power")) return execute(command.copy(kind = CommandKind.POWER_TOGGLE), fromMacro)
@@ -468,6 +464,10 @@ class TvController(private val context: Context, private val textures: TextureRe
                     waking?.isActive == true && !panelOnObserved()) wakeOwnerMacro = null
                 cancelMacro()
             }
+            if (command.kind == CommandKind.VOLUME && !CapabilityRouter.volumeContextMatches(command.value, volumeContext(remote.state.value, sony.state)))
+                return CommandOutcome(Delivery.NOT_SENT, null, "audio_output_changed")
+            if ((command.code != null && command.code !in 0..65535) || (command.number != null && command.number !in 0..Int.MAX_VALUE.toLong()))
+                return CommandOutcome(Delivery.NOT_SENT, null, "invalid_command")
             if (command.kind == CommandKind.POWER_ON) return wake(command, macroId.takeIf { fromMacro })
             if (command.kind == CommandKind.POWER_TOGGLE && PowerObservation.shouldWakeToggle(
                 sony.state.power, off, remotePort.accepts(command), waking?.isActive == true && !panelOnObserved()))
