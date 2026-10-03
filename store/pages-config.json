@@ -1,0 +1,10 @@
+{
+  "repository": "amersheeny/tvvnc",
+  "source": {
+    "branch": "gh-pages",
+    "path": "/"
+  },
+  "url": "https://amersheeny.github.io/tvvnc/",
+  "generator": "tools/privacy_site.mjs",
+  "artifactDirectory": "build/privacy-site"
+}
