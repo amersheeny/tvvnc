@@ -1,0 +1,1 @@
+-keep class dev.tvvnc.tv_vnc.core.VncBridge { *; }
