@@ -1,0 +1,7 @@
+appId: com.asheeny.tvvnc
+---
+- assertVisible: "Example search"
+- tapOn: "Example search"
+- takeScreenshot: field-after-tap
+- inputText: "X"
+- takeScreenshot: field-after-typing
