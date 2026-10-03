@@ -1,0 +1,9 @@
+[submodule "native/libvncserver"]
+	path = native/libvncserver
+	url = https://github.com/amersheeny/tvvnc-libvncserver.git
+[submodule "native/libjpeg-turbo"]
+	path = native/libjpeg-turbo
+	url = https://github.com/libjpeg-turbo/libjpeg-turbo.git
+[submodule "native/androidtv-remote"]
+	path = native/androidtv-remote
+	url = https://github.com/amersheeny/tvvnc-remote-core.git

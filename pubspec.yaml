@@ -1,0 +1,33 @@
+name: tv_vnc
+description: "Private local-network Android TV control and screen viewing."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  pigeon: ^29.0.2
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/privacy-policy.json
+    - LICENSE
+    - NOTICE
+    - assets/licenses/
+    - native/libvncserver/COPYING
+    - native/libvncserver/AUTHORS
+    - native/libvncserver/TVCONSOLE_CHANGES.md
+    - native/libjpeg-turbo/LICENSE.md
+    - native/libjpeg-turbo/README.ijg
+    - native/androidtv-remote/LICENSE
+    - native/androidtv-remote/androidtv-remote/NOTICE
+    - native/androidtv-remote/protocol-schemas/LICENSE
