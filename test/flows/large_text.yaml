@@ -1,0 +1,19 @@
+appId: com.asheeny.tvvnc
+---
+- tapOn: "Clear"
+- tapOn: "Type or paste text"
+- inputText: "large private fixture"
+- takeScreenshot: private-keyboard-large
+- hideKeyboard
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Remote.*"
+- takeScreenshot: remote-large
+- swipe:
+    direction: UP
+- takeScreenshot: remote-media-large
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)All buttons.*"
+- takeScreenshot: all-buttons-large
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Apps.*"
+- takeScreenshot: apps-large
