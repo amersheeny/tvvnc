@@ -1,0 +1,39 @@
+appId: com.asheeny.tvvnc
+---
+- stopApp
+- launchApp
+- tapOn: "(?s)Editor protocol fixture.*"
+- extendedWaitUntil:
+    visible: "(?s).*Android TV Remote.*Connected.*On"
+    timeout: 20000
+- tapOn: "Show menu"
+- tapOn: "Edit"
+- tapOn: "(?s)Settings.*"
+- scrollUntilVisible:
+    element: "Sony pre-shared key"
+    direction: DOWN
+- tapOn: "Sony pre-shared key"
+- inputText: "fixture-only"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "(?s).*Connected.*On"
+    timeout: 20000
+- tapOn: "Power"
+- extendedWaitUntil:
+    visible: "(?s).*Standby.*"
+    timeout: 15000
+- stopApp
+- launchApp
+- tapOn: "(?s)Editor protocol fixture.*"
+- extendedWaitUntil:
+    visible: "(?s).*Automatic reconnect paused.*"
+    timeout: 15000
+- tapOn: "Power"
+- extendedWaitUntil:
+    visible: "(?s)Waking TV.*Standby.*"
+    timeout: 20000
+- takeScreenshot: wake-before-repeat
+- tapOn: "Up"
+- tapOn: "Power"
+- assertVisible: "(?s)Waking TV.*Standby.*"
+- takeScreenshot: wake-after-repeat

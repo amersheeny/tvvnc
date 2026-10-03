@@ -1,0 +1,17 @@
+appId: com.asheeny.tvvnc
+---
+- launchApp
+- tapOn: "(?s)Editor protocol fixture.*"
+- extendedWaitUntil:
+    visible: "(?s).*Android TV Remote.*Connected.*On"
+    timeout: 20000
+- tapOn: "Show menu"
+- takeScreenshot: remote-menu
+- back
+- tapOn: "Power"
+- extendedWaitUntil:
+    visible: "(?s).*Standby.*"
+    timeout: 15000
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Diagnostics.*"
+- takeScreenshot: standby-diagnostics

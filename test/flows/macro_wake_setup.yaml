@@ -1,0 +1,44 @@
+appId: com.asheeny.tvvnc
+---
+- stopApp
+- launchApp
+- tapOn: "(?s)Editor protocol fixture.*"
+- extendedWaitUntil:
+    visible: "(?s).*Android TV Remote.*Connected.*On"
+    timeout: 20000
+- tapOn: "Show menu"
+- tapOn: "Edit"
+- tapOn: "(?s)Settings.*"
+- scrollUntilVisible:
+    element: "Sony pre-shared key"
+    direction: DOWN
+- tapOn: "Sony pre-shared key"
+- inputText: "fixture-only"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "(?s).*Android TV Remote.*Connected.*On"
+    timeout: 20000
+- tapOn: "Up"
+- tapOn: "Power"
+- extendedWaitUntil:
+    visible: "(?s).*Standby.*"
+    timeout: 15000
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Shortcuts.*"
+- runFlow:
+    when:
+      notVisible: "(?s)Wake regression.*"
+    commands:
+      - tapOn: "Add shortcut"
+      - tapOn: "Shortcut name"
+      - inputText: "Wake regression"
+      - hideKeyboard
+      - tapOn: "Add step"
+      - tapOn: "Wake TV"
+      - tapOn: "Save"
+- tapOn: "Run"
+- assertVisible: "Stop shortcut"
+- assertVisible: "(?s)Waking TV.*"
+- tapOn: "Open navigation menu"
+- tapOn: "(?s)Remote.*"
+- assertVisible: "(?s)Waking TV.*"
